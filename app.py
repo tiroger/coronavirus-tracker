@@ -9,7 +9,7 @@ base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/css
 
 tick_font = {'size':12, 'color':"rgb(30,30,30)", 'family':"Helvetica, sans-serif"}
 
-def loadData(fileName, columnName): 
+def loadData(fileName, columnName):
     data = pd.read_csv(base_url + fileName) \
              .drop(['Lat', 'Long'], axis=1) \
              .melt(id_vars=['Province/State', 'Country/Region'], var_name='date', value_name=columnName) \
@@ -86,39 +86,45 @@ def nonreactive_data(country, state):
     data['dateStr'] = data['date'].dt.strftime('%b %d, %Y')
     return data
 
-def barchart(data, metrics, prefix="", yaxisTitle=""):
+def linechart(data, metrics, prefix="", yaxisTitle=""):
     figure = go.Figure(data=[
-        go.Bar( 
-            name=metric, x=data.date, y=data[prefix + metric],
-            marker_line_color='rgb(0,0,0)', marker_line_width=0.5,
-            marker_color={ 'Deaths':'red', 'Recovered':'blue', 'Confirmed':'green'}[metric]
-        ) for metric in metrics
+        go.Scatter(name=metric,
+                   x=data.date,
+                   y=data[prefix + metric],
+                   marker_line_color='rgb(0,0,0)',
+                   marker_line_width=0.5,
+                   marker_color={
+                       'Deaths': 'firebrick',
+                       'Recovered': 'forestgreen',
+                       'Confirmed': 'darkslateblue'
+                   }[metric],
+                   mode='lines+markers') for metric in metrics
     ])
-    figure.update_layout( 
-              barmode='group', legend=dict(x=.05, y=0.95, font={'size':15}, bgcolor='rgba(240,240,240,0.5)'), 
+    figure.update_layout(
+              barmode='group', legend=dict(x=.05, y=0.95, font={'size':15}, bgcolor='rgba(0,0,0,0)'),
               plot_bgcolor='#FFFFFF', font=tick_font) \
-          .update_xaxes( 
-              title="", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD', 
+          .update_xaxes(
+              title="", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
               tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date) \
           .update_yaxes(
               title=yaxisTitle, showgrid=True, gridcolor='#DDDDDD')
     return figure
 
 @app.callback(
-    Output('plot_new_metrics', 'figure'), 
+    Output('plot_new_metrics', 'figure'),
     [Input('country', 'value'), Input('state', 'value'), Input('metrics', 'value')]
 )
 def update_plot_new_metrics(country, state, metrics):
     data = nonreactive_data(country, state)
-    return barchart(data, metrics, prefix="New", yaxisTitle="New Cases per Day")
+    return linechart(data, metrics, prefix="New", yaxisTitle="New Cases per Day")
 
 @app.callback(
-    Output('plot_cum_metrics', 'figure'), 
+    Output('plot_cum_metrics', 'figure'),
     [Input('country', 'value'), Input('state', 'value'), Input('metrics', 'value')]
 )
 def update_plot_cum_metrics(country, state, metrics):
     data = nonreactive_data(country, state)
-    return barchart(data, metrics, prefix="Cum", yaxisTitle="Cumulative Cases")
+    return linechart(data, metrics, prefix="Cum", yaxisTitle="Cumulative Cases")
 
 if __name__ == '__main__':
     app.run_server(debug=True)
