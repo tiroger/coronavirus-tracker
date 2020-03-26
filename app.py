@@ -3,7 +3,10 @@ import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objects as go
 from dash.dependencies import Input, Output
+import dash_bootstrap_components as dbc
 import pandas as pd
+import datetime
+
 
 base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
 
@@ -12,6 +15,8 @@ tick_font = {
     'color': "rgb(30,30,30)",
     'family': "Helvetica, sans-serif"
 }
+
+colors = {'background': '#111111', 'text': '#7FDBFF'}
 
 
 def loadData(fileName, columnName):
@@ -29,50 +34,91 @@ all_data = loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") 
 
 countries = sorted(all_data['Country/Region'].unique())
 
-app = dash.Dash(__name__)
+# Grouping data by country
+grouped_country = all_data.groupby('Country/Region').max().reset_index()
+grouped_country.drop('Province/State', axis=1, inplace=True)
+total_confirmed = grouped_country['CumConfirmed'].sum().astype(str)
+total_deaths = grouped_country['CumDeaths'].sum().astype(str)
+#print(total_confirmed)
+#print(total_deaths)
+last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
+
+colors = {'background': '#111111', 'text': '#BF4025'}
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+#app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = html.Div(
     style={'font-family': "Helvetica, sans-serif"},
     children=[
         html.H1('Tracking Coronavirus (COVID-19) Cases'),
-        html.Div(
-            className="row",
-            children=[
-                html.Div(className="four columns",
-                         children=[
-                             html.H5('Country'),
-                             dcc.Dropdown(id='country',
-                                          options=[{
-                                              'label': c,
-                                              'value': c
-                                          } for c in countries],
-                                          value='US')
-                         ]),
-                html.Div(className="four columns",
-                         children=[
-                             html.H5('State / Province'),
-                             dcc.Dropdown(id='state')
-                         ]),
-                html.Div(
-                    className="four columns",
-                    children=[
-                        html.H5('Selected Metrics'),
-                        dcc.Checklist(
-                            id='metrics',
-                            options=[{
-                                'label': m,
-                                'value': m
-                            } for m in ['Confirmed', 'Deaths']],
-                            value=['Confirmed', 'Deaths'])
-                    ])
-            ]),
+        html.P(f'Updated on {last_updated}'),
+        html.Div(className="row",
+                 children=[
+                     html.Div(className="two columns",
+                              children=[
+                                  html.H5(
+                                      total_confirmed,
+                                      style={
+                                          'color': colors['text'],
+                                          'font-size': '50px',
+                                          'text-align': 'left',
+                                          'font-weight': '400'
+                                      },
+                                  ),
+                                  html.P("GLOBAL CONFIRMED CASES")
+                              ]),
+                     html.Div(className="two columns",
+                              children=[
+                                  html.H5(
+                                      total_deaths,
+                                      style={
+                                          'color': colors['text'],
+                                          'font-size': '50px',
+                                          'text-align': 'left',
+                                          'font-weight': '400'
+                                      },
+                                  ),
+                                  html.P("GLOBAL DEATHS")
+                              ]),
+                     html.Div(className="two columns",
+                              children=[
+                                  html.H5('Country'),
+                                  dcc.Dropdown(id='country',
+                                               options=[{
+                                                   'label': c,
+                                                   'value': c
+                                               } for c in countries],
+                                               value='US')
+                              ]),
+                     html.Div(className="two columns",
+                              children=[
+                                  html.H5('State / Province'),
+                                  dcc.Dropdown(id='state')
+                              ]),
+                     html.Div(className="three columns",
+                              children=[
+                                  html.H5('Selected Metrics'),
+                                  dcc.Checklist(
+                                      id='metrics',
+                                      options=[{
+                                          'label': m,
+                                          'value': m
+                                      } for m in ['Confirmed', 'Deaths']],
+                                      value=['Confirmed', 'Deaths'])
+                              ])
+                 ]),
         dcc.Graph(id="plot_new_metrics", config={'displayModeBar': False}),
-        dcc.Graph(id="plot_cum_metrics", config={'displayModeBar': False})
+        dcc.Graph(id="plot_cum_metrics", config={'displayModeBar': False}),
     ])
 
 
 @app.callback([Output('state', 'options'),
-               Output('state', 'value')], [Input('country', 'value')])
+               Output('state', 'value')], 
+               [Input('country', 'value')])
+               
 def update_states(country):
     states = sorted(
         list(all_data.loc[all_data['Country/Region'] == country]
@@ -133,7 +179,7 @@ def barchart(data, metrics, prefix="", yaxisTitle=""):
                    marker_line_width=0.5,
                    marker_color={
                        'Deaths': 'firebrick',
-                       'Recovered': 'forestgreen',
+                       #'Recovered': 'forestgreen',
                        'Confirmed': 'darkslateblue'
                    }[metric]
                    ) for metric in metrics
@@ -154,6 +200,7 @@ def barchart(data, metrics, prefix="", yaxisTitle=""):
     Input('state', 'value'),
     Input('metrics', 'value')
 ])
+
 def update_plot_new_metrics(country, state, metrics):
     data = nonreactive_data(country, state)
     return barchart(data,
