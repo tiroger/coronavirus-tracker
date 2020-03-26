@@ -62,7 +62,7 @@ app.layout = html.Div(
                             options=[{
                                 'label': m,
                                 'value': m
-                            } for m in ['Confirmed', 'Deaths', 'Recovered']],
+                            } for m in ['Confirmed', 'Deaths']],
                             value=['Confirmed', 'Deaths'])
                     ])
             ]),
