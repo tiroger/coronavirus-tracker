@@ -54,33 +54,33 @@ longitude = -95.7129
 # deaths = all_data.CumDeaths
 # countries = all_data['Country/Region']
 
-def map_locations():
+# def map_locations():
 
-    locations = all_data['location']
-    confirmed_cases = all_data.CumConfirmed
-    deaths = all_data.CumDeaths
-    countries = all_data['Country/Region']
-    corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
+#     locations = all_data['location']
+#     confirmed_cases = all_data.CumConfirmed
+#     deaths = all_data.CumDeaths
+#     countries = all_data['Country/Region']
+#     corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
     
-    for location, confirmed, death, country in zip(locations, confirmed_cases,
-                                                   deaths, countries):
-        folium.CircleMarker(
-            location,
-            color='#3186cc',
-            weight=0.1,
-            fill_color='#C23208',
-            fill=True,
-            fill_opacity=0.1,
-            tooltip=('<H6>' + country + '</H6>' + '<br>'
-                     'Confirmed: ' + '<strong style="color:#C23208;">' +
-                     str(confirmed) + '</strong>' + '<br>'
-                     'Deaths: ' + '<strong style="color:#C23208;">' +
-                     str(death) + '</strong>' + '<br>')).add_to(corona_map)
-    return corona_map
+#     for location, confirmed, death, country in zip(locations, confirmed_cases,
+#                                                    deaths, countries):
+#         folium.CircleMarker(
+#             location,
+#             color='#3186cc',
+#             weight=0.1,
+#             fill_color='#C23208',
+#             fill=True,
+#             fill_opacity=0.1,
+#             tooltip=('<H6>' + country + '</H6>' + '<br>'
+#                      'Confirmed: ' + '<strong style="color:#C23208;">' +
+#                      str(confirmed) + '</strong>' + '<br>'
+#                      'Deaths: ' + '<strong style="color:#C23208;">' +
+#                      str(death) + '</strong>' + '<br>')).add_to(corona_map)
+#     return corona_map
 
 
-location_map = map_locations()
-location_map.save(outfile='location_map.html')
+#location_map = map_locations()
+#location_map.save(outfile='location_map.html')
 
 
 colors = {'background': '#111111', 'text': '#BF4025'}
