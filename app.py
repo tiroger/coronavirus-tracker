@@ -47,7 +47,7 @@ last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 # For map
 latitude = 37.0902
 longitude = -95.7129
-corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
+
 
 locations = all_data['location']
 confirmed_cases = all_data.CumConfirmed
@@ -55,11 +55,11 @@ deaths = all_data.CumDeaths
 countries = all_data['Country/Region']
 
 def map_locations():
+    corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
     for location, confirmed, death, country in zip(locations, confirmed_cases,
                                                    deaths, countries):
         folium.CircleMarker(
             location,
-            threshold_scale=[0, 1000, 20000, 50000],
             color='#3186cc',
             weight=0.1,
             fill_color='#C23208',
