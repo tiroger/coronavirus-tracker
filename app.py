@@ -1,4 +1,5 @@
 import dash
+import folium
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objects as go
@@ -20,8 +21,7 @@ colors = {'background': '#111111', 'text': '#7FDBFF'}
 
 def loadData(fileName, columnName):
     data = pd.read_csv(base_url + fileName) \
-             .drop(['Lat', 'Long'], axis=1) \
-             .melt(id_vars=['Province/State', 'Country/Region'], var_name='date', value_name=columnName) \
+             .melt(id_vars=['Province/State', 'Country/Region', 'Lat', 'Long'], var_name='date', value_name=columnName) \
              .fillna('<all>')
     data['date'] = data['date'].astype('datetime64[ns]')
     return data
@@ -30,6 +30,8 @@ def loadData(fileName, columnName):
 all_data = loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") \
     .merge(loadData("time_series_covid19_deaths_global.csv", "CumDeaths")) \
     .merge(loadData("time_series_covid19_recovered_global.csv", "CumRecovered"))
+
+all_data['location'] = list(zip(all_data['Lat'], all_data['Long']))
 
 countries = sorted(all_data['Country/Region'].unique())
 
@@ -41,6 +43,39 @@ total_deaths = grouped_country['CumDeaths'].sum().astype(str)
 #print(total_confirmed)
 #print(total_deaths)
 last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
+
+# For map
+latitude = 37.0902
+longitude = -95.7129
+corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
+
+locations = all_data['location']
+confirmed_cases = all_data.CumConfirmed
+deaths = all_data.CumDeaths
+countries = all_data['Country/Region']
+
+def map_locations():
+    for location, confirmed, death, country in zip(locations, confirmed_cases,
+                                                   deaths, countries):
+        folium.CircleMarker(
+            location,
+            threshold_scale=[0, 1000, 20000, 50000],
+            color='#3186cc',
+            weight=0.1,
+            fill_color='#C23208',
+            fill=True,
+            fill_opacity=0.1,
+            tooltip=('<H6>' + country + '</H6>' + '<br>'
+                     'Confirmed: ' + '<strong style="color:#C23208;">' +
+                     str(confirmed) + '</strong>' + '<br>'
+                     'Deaths: ' + '<strong style="color:#C23208;">' +
+                     str(death) + '</strong>' + '<br>')).add_to(corona_map)
+    return corona_map
+
+
+location_map = map_locations()
+location_map.save(outfile='location_map.html')
+
 
 colors = {'background': '#111111', 'text': '#BF4025'}
 
@@ -54,6 +89,7 @@ app.layout = html.Div(
     children=[
         html.H1('Tracking Coronavirus (COVID-19) Cases'),
         html.P(f'Updated on {last_updated}'),
+        html.Iframe(id='map', srcDoc = open('location_map.html', 'r').read(), width='95%', height='500'),
         html.Div(className="row",
                  children=[
                      html.Div(className="two columns",
