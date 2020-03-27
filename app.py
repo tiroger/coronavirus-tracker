@@ -7,6 +7,7 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import pandas as pd
 import datetime
+from update_map import loadData
 
 base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
 
@@ -19,12 +20,12 @@ tick_font = {
 colors = {'background': '#111111', 'text': '#7FDBFF'}
 
 
-def loadData(fileName, columnName):
-    data = pd.read_csv(base_url + fileName) \
-             .melt(id_vars=['Province/State', 'Country/Region', 'Lat', 'Long'], var_name='date', value_name=columnName) \
-             .fillna('<all>')
-    data['date'] = data['date'].astype('datetime64[ns]')
-    return data
+# def loadData(fileName, columnName):
+#     data = pd.read_csv(base_url + fileName) \
+#              .melt(id_vars=['Province/State', 'Country/Region', 'Lat', 'Long'], var_name='date', value_name=columnName) \
+#              .fillna('<all>')
+#     data['date'] = data['date'].astype('datetime64[ns]')
+#     return data
 
 
 all_data = loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") \
@@ -45,8 +46,8 @@ total_deaths = grouped_country['CumDeaths'].sum().astype(str)
 last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 
 # For map
-latitude = 37.0902
-longitude = -95.7129
+# latitude = 37.0902
+# longitude = -95.7129
 
 
 # locations = all_data['location']
@@ -61,7 +62,7 @@ longitude = -95.7129
 #     deaths = all_data.CumDeaths
 #     countries = all_data['Country/Region']
 #     corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
-    
+
 #     for location, confirmed, death, country in zip(locations, confirmed_cases,
 #                                                    deaths, countries):
 #         folium.CircleMarker(
