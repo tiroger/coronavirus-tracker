@@ -90,6 +90,7 @@ app.layout = html.Div(
         html.H1('Tracking Coronavirus (COVID-19) Cases'),
         html.P(f'Updated on {last_updated}'),
         html.Iframe(id='map', srcDoc = open('location_map.html', 'r').read(), width='95%', height='500'),
+        html.Button(id='map-submit-button', n_clicks=0, children='Refresh Map'),
         html.Div(className="row",
                  children=[
                      html.Div(className="two columns",
@@ -152,6 +153,7 @@ app.layout = html.Div(
 
 @app.callback([Output('state', 'options'),
                Output('state', 'value')], [Input('country', 'value')])
+
 def update_states(country):
     states = sorted(
         list(all_data.loc[all_data['Country/Region'] == country]
@@ -252,6 +254,15 @@ def update_plot_cum_metrics(country, state, metrics):
                      metrics,
                      prefix="Cum",
                      yaxisTitle="Cumulative Cases")
+
+
+@app.callback(dash.dependencies.Output('map', 'srcDoc'),
+              [dash.dependencies.Input('map-submit-button', 'n_clicks')])
+def update_map(n_clicks):
+    if n_clicks is None:
+        return dash.no_update
+    else:
+        return open('location_map.html', 'r').read()
 
 
 if __name__ == '__main__':
