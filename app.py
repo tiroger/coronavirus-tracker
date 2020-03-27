@@ -49,13 +49,19 @@ latitude = 37.0902
 longitude = -95.7129
 
 
-locations = all_data['location']
-confirmed_cases = all_data.CumConfirmed
-deaths = all_data.CumDeaths
-countries = all_data['Country/Region']
+# locations = all_data['location']
+# confirmed_cases = all_data.CumConfirmed
+# deaths = all_data.CumDeaths
+# countries = all_data['Country/Region']
 
 def map_locations():
+
+    locations = all_data['location']
+    confirmed_cases = all_data.CumConfirmed
+    deaths = all_data.CumDeaths
+    countries = all_data['Country/Region']
     corona_map = folium.Map(location=[latitude, longitude], zoom_start=3)
+    
     for location, confirmed, death, country in zip(locations, confirmed_cases,
                                                    deaths, countries):
         folium.CircleMarker(
