@@ -45,8 +45,8 @@ total_deaths = grouped_country['CumDeaths'].sum().astype(str)
 last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 
 # For map
-latitude = 37.0902
-longitude = -95.7129
+latitude = 34.717911
+longitude = -40.819474
 
 locations = all_data['location']
 confirmed_cases = all_data.CumConfirmed

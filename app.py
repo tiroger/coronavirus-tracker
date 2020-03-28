@@ -80,8 +80,8 @@ last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 #     return corona_map
 
 
-#location_map = map_locations()
-#location_map.save(outfile='location_map.html')
+# location_map = map_locations()
+# location_map.save(outfile='location_map.html')
 
 
 colors = {'background': '#111111', 'text': '#BF4025'}
