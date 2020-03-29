@@ -8,6 +8,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import datetime
 # from update_map import loadData
+from update_map import map_locations
 
 base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
 
@@ -80,8 +81,8 @@ last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 #     return corona_map
 
 
-# location_map = map_locations()
-# location_map.save(outfile='location_map.html')
+location_map = map_locations()
+location_map.save(outfile='location_map.html')
 
 
 colors = {'background': '#111111', 'text': '#BF4025'}
@@ -141,7 +142,7 @@ app.layout = html.Div(
                                   html.H5('State / Province'),
                                   dcc.Dropdown(id='state')
                               ]),
-                     html.Div(className="three columns",
+                     html.Div(className="two columns",
                               children=[
                                   html.H5('Selected Metrics'),
                                   dcc.Checklist(

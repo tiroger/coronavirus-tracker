@@ -45,15 +45,19 @@ total_deaths = grouped_country['CumDeaths'].sum().astype(str)
 last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 
 # For map
-latitude = 34.717911
-longitude = -40.819474
+# latitude = 34.717911
+# longitude = -40.819474
 
-locations = all_data['location']
-confirmed_cases = all_data.CumConfirmed
-deaths = all_data.CumDeaths
-countries = all_data['Country/Region']
+# locations = all_data['location']
+# confirmed_cases = all_data.CumConfirmed
+# deaths = all_data.CumDeaths
+# countries = all_data['Country/Region']
 
 def map_locations():
+
+    # For map
+    latitude = 34.717911
+    longitude = -40.819474
 
     locations = all_data['location']
     confirmed_cases = all_data.CumConfirmed
@@ -77,5 +81,5 @@ def map_locations():
                      str(death) + '</strong>' + '<br>')).add_to(corona_map)
     return corona_map
 
-location_map = map_locations()
-location_map.save(outfile='location_map.html')
+# location_map = map_locations() ## Uncomment if timeout
+# location_map.save(outfile='location_map.html') ## Uncomment if timeout

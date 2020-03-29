@@ -6,3 +6,5 @@ venv
 .vscode/
 
 .ipynb_checkpoints/
+
+.ipynb_checkpoints/gather_data-checkpoint.ipynb
