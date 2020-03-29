@@ -81,5 +81,5 @@ def map_locations():
                      str(death) + '</strong>' + '<br>')).add_to(corona_map)
     return corona_map
 
-# location_map = map_locations() ## Uncomment if timeout
-# location_map.save(outfile='location_map.html') ## Uncomment if timeout
+location_map = map_locations() # Uncomment if timeout
+location_map.save(outfile='location_map.html') # Uncomment if timeout
