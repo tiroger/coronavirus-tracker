@@ -97,7 +97,7 @@ app.layout = html.Div(
     children=[
         html.H1('Tracking Coronavirus (COVID-19) Cases'),
         html.P(f'Updated on {last_updated}'),
-        html.Iframe(id='map', srcDoc = open('location_map.html', 'r').read(), width='95%', height='500'),
+        html.Iframe(id='map', srcDoc = open('./location_map.html', 'r').read(), width='95%', height='500'),
         #html.Button(id='map-submit-button', n_clicks=0, children='Refresh Map'),
         html.Div(className="row",
                  children=[
