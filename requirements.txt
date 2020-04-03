@@ -8,6 +8,7 @@ certifi==2019.11.28
 cffi==1.14.0
 chardet==3.0.4
 click==7.1.1
+country-converter==0.6.7
 cryptography==2.8
 cycler==0.10.0
 dash==1.9.1
@@ -29,6 +30,7 @@ importlib-metadata==1.5.0
 ipykernel==5.1.4
 ipython==7.13.0
 ipython-genutils==0.2.0
+ipywidgets==7.5.1
 isort==4.3.21
 itsdangerous==1.1.0
 jedi==0.16.0
@@ -38,7 +40,7 @@ json5==0.9.0
 jsonschema==3.2.0
 jupyter-client==6.1.0
 jupyter-core==4.6.3
-jupyterlab==2.0.1
+jupyterlab==1.2.0
 jupyterlab-server==1.0.7
 kiwisolver==1.0.1
 lazy-object-proxy==1.4.3
@@ -61,6 +63,7 @@ plotly==4.5.4
 prometheus-client==0.7.1
 prompt-toolkit==3.0.4
 ptyprocess==0.6.0
+pycountry==19.8.18
 pycparser==2.20
 Pygments==2.6.1
 pylint==2.4.4
@@ -88,6 +91,7 @@ vincent==0.4.4
 wcwidth==0.1.8
 webencodings==0.5.1
 Werkzeug==1.0.0
+widgetsnbextension==3.5.1
 wrapt==1.11.2
 yapf==0.29.0
 zipp==3.1.0
