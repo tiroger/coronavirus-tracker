@@ -1,5 +1,6 @@
 import dash
 import folium
+import pycountry
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objects as go
@@ -7,10 +8,79 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import pandas as pd
 import datetime
+import plotly.express as px
 # from update_map import loadData
 # from update_map import map_locations
 
-base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
+
+####################################################
+# GATHERING AND PARSING DATA FOR CHARTS AND GRAPHS #
+####################################################
+
+
+base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/" # Github link to data
+
+# Function to collect new data on every reload of the page
+def loadData(fileName, columnName):
+    data = pd.read_csv(base_url + fileName) \
+             .melt(id_vars=['Province/State', 'Country/Region', 'Lat', 'Long'], var_name='date', value_name=columnName) \
+             .fillna('<all>')
+    data['date'] = data['date'].astype('datetime64[ns]')
+    return data
+
+
+# Getting data
+all_data = loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") \
+    .merge(loadData("time_series_covid19_deaths_global.csv", "CumDeaths")) \
+    .merge(loadData("time_series_covid19_recovered_global.csv", "CumRecovered"))
+
+# Combining lat and lon into a new 'location' column
+all_data['location'] = list(zip(all_data['Lat'], all_data['Long']))
+
+country_list = sorted(all_data['Country/Region'].unique()) # For callback functions
+
+# Grouping data by country
+grouped_country = all_data.groupby('Country/Region').max().reset_index()
+grouped_country.drop('Province/State', axis=1, inplace=True)
+total_confirmed = grouped_country['CumConfirmed'].sum().astype(str)
+total_deaths = grouped_country['CumDeaths'].sum().astype(str)
+#print(total_confirmed)
+#print(total_deaths)
+
+# Adding 3-letter country codes
+input_countries = grouped_country['Country/Region']
+
+countries = {}
+for country in pycountry.countries:
+    countries[country.name] = country.alpha_3
+
+codes = [countries.get(country, 'Unknown code') for country in input_countries]
+
+#print(codes)
+grouped_country['code'] = codes # Creating new column with 3-letter country code for each country
+
+# Manually updating missing 3-letter codes
+grouped_country.loc[20, 'code'] = 'BOL'
+grouped_country.loc[24, 'code'] = 'BWN'
+grouped_country.loc[27, 'code'] = 'MMR'
+grouped_country.loc[37, 'code'] = 'COG'
+grouped_country.loc[38, 'code'] = 'COD'
+grouped_country.loc[40, 'code'] = 'CIV'
+grouped_country.loc[73, 'code'] = 'VAT'
+grouped_country.loc[79, 'code'] = 'IRN'
+grouped_country.loc[89, 'code'] = 'KOR'
+grouped_country.loc[90, 'code'] = 'RKS'
+grouped_country.loc[93, 'code'] = 'LAO'
+grouped_country.loc[111, 'code'] = 'MDA'
+grouped_country.loc[136, 'code'] = 'RUS'
+grouped_country.loc[158, 'code'] = 'TWN'
+grouped_country.loc[159, 'code'] = 'TZA'
+grouped_country.loc[165, 'code'] = 'USA'
+grouped_country.loc[172, 'code'] = 'VEN'
+grouped_country.loc[173, 'code'] = 'VNM'
+grouped_country.loc[174, 'code'] = 'PSE'
+
+grouped_country.head()
 
 tick_font = {
     'size': 12,
@@ -20,31 +90,37 @@ tick_font = {
 
 colors = {'background': '#111111', 'text': '#7FDBFF'}
 
-
-def loadData(fileName, columnName):
-    data = pd.read_csv(base_url + fileName) \
-             .melt(id_vars=['Province/State', 'Country/Region', 'Lat', 'Long'], var_name='date', value_name=columnName) \
-             .fillna('<all>')
-    data['date'] = data['date'].astype('datetime64[ns]')
-    return data
+last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y") # Date when database was last updated
 
 
-all_data = loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") \
-    .merge(loadData("time_series_covid19_deaths_global.csv", "CumDeaths")) \
-    .merge(loadData("time_series_covid19_recovered_global.csv", "CumRecovered"))
+###########################
+# FUNCTION FOR CHOROPLETH #
+###########################
 
-all_data['location'] = list(zip(all_data['Lat'], all_data['Long']))
+def world_map():
+    fig = px.choropleth(grouped_country,
+                        locations='code',
+                        hover_data=["CumConfirmed", "CumDeaths"],
+                        color='CumConfirmed',
+                        color_continuous_scale='Reds',
+                        range_color=(0, 25000),
+                        labels={
+                            'CumConfirmed':
+                            'Confirmed Cases (x10)',
+                            'CumDeaths': 'Deaths'
+                        },
+                        featureidkey="grouped_country.CumDeaths",
+                        scope='world',
+                        height=700,
+                        width=1500)
+    fig.update_layout(geo=dict(showframe=False,
+                               showcoastlines=False,
+                               projection_type='equirectangular'))
 
-countries = sorted(all_data['Country/Region'].unique())
+    return fig
 
-# Grouping data by country
-grouped_country = all_data.groupby('Country/Region').max().reset_index()
-grouped_country.drop('Province/State', axis=1, inplace=True)
-total_confirmed = grouped_country['CumConfirmed'].sum().astype(str)
-total_deaths = grouped_country['CumDeaths'].sum().astype(str)
-#print(total_confirmed)
-#print(total_deaths)
-last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
+
+world_map = world_map()
 
 # For map
 # latitude = 37.0902
@@ -84,6 +160,9 @@ last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y")
 # location_map = map_locations()
 # location_map.save(outfile='location_map.html')
 
+######################
+# BUILDING DASHBOARD #
+######################
 
 colors = {'background': '#111111', 'text': '#BF4025'}
 
@@ -97,65 +176,73 @@ app.layout = html.Div(
     children=[
         html.H1('Tracking Coronavirus (COVID-19) Cases'),
         html.P(f'Updated on {last_updated}'),
-        html.Iframe(id='map', srcDoc = open('./location_map.html', 'r').read(), width='95%', height='500'),
+        #html.Iframe(id='map', srcDoc = open('./location_map.html', 'r').read(), width='95%', height='500'),
+        #dcc.Graph(id='world_map', figure=world_map),
         #html.Button(id='map-submit-button', n_clicks=0, children='Refresh Map'),
-        html.Div(className="row",
-                 children=[
-                     html.Div(className="two columns",
-                              children=[
-                                  html.H5(
-                                      total_confirmed,
-                                      style={
-                                          'color': colors['text'],
-                                          'font-size': '50px',
-                                          'text-align': 'left',
-                                          'font-weight': '400'
-                                      },
-                                  ),
-                                  html.P("GLOBAL CONFIRMED CASES")
-                              ]),
-                     html.Div(className="two columns",
-                              children=[
-                                  html.H5(
-                                      total_deaths,
-                                      style={
-                                          'color': colors['text'],
-                                          'font-size': '50px',
-                                          'text-align': 'left',
-                                          'font-weight': '400'
-                                      },
-                                  ),
-                                  html.P("GLOBAL DEATHS")
-                              ]),
-                     html.Div(className="two columns",
-                              children=[
-                                  html.H5('Country'),
-                                  dcc.Dropdown(id='country',
-                                               options=[{
-                                                   'label': c,
-                                                   'value': c
-                                               } for c in countries],
-                                               value='US')
-                              ]),
-                     html.Div(className="two columns",
-                              children=[
-                                  html.H5('State / Province'),
-                                  dcc.Dropdown(id='state')
-                              ]),
-                     html.Div(className="two columns",
-                              children=[
-                                  html.H5('Selected Metrics'),
-                                  dcc.Checklist(
-                                      id='metrics',
-                                      options=[{
-                                          'label': m,
-                                          'value': m
-                                      } for m in ['Confirmed', 'Deaths']],
-                                      value=['Confirmed', 'Deaths'])
-                              ])
-                 ]),
+        html.Div(
+            className="row",
+            children=[
+                html.Div(className="two columns",
+                         children=[
+                             html.H5(
+                                 total_confirmed,
+                                 style={
+                                     'color': colors['text'],
+                                     'font-size': '50px',
+                                     'text-align': 'left',
+                                     'font-weight': '400'
+                                 },
+                             ),
+                             html.P("GLOBAL CONFIRMED CASES")
+                         ]),
+                html.Div(className="two columns",
+                         children=[
+                             html.H5(
+                                 total_deaths,
+                                 style={
+                                     'color': colors['text'],
+                                     'font-size': '50px',
+                                     'text-align': 'left',
+                                     'font-weight': '400'
+                                 },
+                             ),
+                             html.P("GLOBAL DEATHS")
+                         ]),
+                html.Div(className="nine columns",
+                         children=[
+                             dcc.Graph(id='world_map',
+                                       figure=world_map,
+                                       config={'displayModeBar': False})
+                         ]),
+                #dcc.Graph(id='world_map', figure=world_map),
+                html.Div(className="four columns",
+                         children=[
+                             html.H5('Country'),
+                             dcc.Dropdown(id='country',
+                                          options=[{
+                                              'label': c,
+                                              'value': c
+                                          } for c in country_list],
+                                          value='US')
+                         ]),
+                html.Div(className="four columns",
+                         children=[
+                             html.H5('State / Province'),
+                             dcc.Dropdown(id='state')
+                         ]),
+                html.Div(className="two columns",
+                         children=[
+                             html.H5('Selected Metrics'),
+                             dcc.Checklist(id='metrics',
+                                           options=[{
+                                               'label': m,
+                                               'value': m
+                                           } for m in ['Confirmed', 'Deaths']],
+                                           value=['Confirmed', 'Deaths'])
+                         ])
+            ]),
         dcc.Graph(id="plot_new_metrics", config={'displayModeBar': False}),
-        dcc.Graph(id="plot_cum_metrics", config={'displayModeBar': False}),
+        dcc.Graph(id="plot_cum_metrics", config={'displayModeBar': False})
     ])
 
 
