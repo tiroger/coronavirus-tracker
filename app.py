@@ -9,6 +9,7 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import datetime
 import plotly.express as px
+import numpy as np
 # from update_map import loadData
 # from update_map import map_locations
 
@@ -80,12 +81,12 @@ grouped_country.loc[172, 'code'] = 'VEN'
 grouped_country.loc[173, 'code'] = 'VNM'
 grouped_country.loc[174, 'code'] = 'PSE'
 
-grouped_country.head()
+#grouped_country.head()
 
 tick_font = {
-    'size': 12,
+    'size': 11,
     'color': "rgb(30,30,30)",
-    'family': "Helvetica, sans-serif"
+    'family': "Roboto, Garamond, Helvetica, sans-serif"
 }
 
 colors = {'background': '#111111', 'text': '#7FDBFF'}
@@ -100,22 +101,33 @@ last_updated = grouped_country.date.iloc[-1].strftime("%d-%B-%Y") # Date when da
 def world_map():
     fig = px.choropleth(grouped_country,
                         locations='code',
+                        #title="Custom layout.hoverlabel formatting",
+                        hover_name="Country/Region",
                         hover_data=["CumConfirmed", "CumDeaths"],
-                        color='CumConfirmed',
+                        color=np.log10(grouped_country["CumConfirmed"]),
                         color_continuous_scale='Reds',
-                        range_color=(0, 25000),
+                        #range_color=(0, 100000),
                         labels={
-                            'CumConfirmed':
-                            'Confirmed Cases (x10)',
+                            'CumConfirmed': 'Confirmed Cases <br> (x10) <br>',
                             'CumDeaths': 'Deaths'
                         },
-                        featureidkey="grouped_country.CumDeaths",
-                        scope='world',
-                        height=700,
-                        width=1500)
-    fig.update_layout(geo=dict(showframe=False,
+                        #featureidkey="grouped_country.CumDeaths",
+                        scope='world')
+    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, coloraxis_colorbar=dict(
+    title="Confirmed Cases",
+    tickvals=[1.5, 2.5, 3.5, 4.5],
+    ticktext=["100", "1k", "10k", "100k"],
+),hovermode="x",
+                      hoverlabel=dict(bgcolor="#BF4025",
+                                      font_size=16,
+                                      ),
+                      geo=dict(showframe=False,
                                showcoastlines=False,
-                               projection_type='equirectangular'))
+                               projection_type='orthographic'))
+    fig.update_traces(hovertemplate='<b>' + grouped_country['Country/Region'] +
+                      '</b>' + '<br>' + 'Confirmed Cases: ' +
+                      grouped_country['CumConfirmed'].astype(str) + '<br>' +
+                      'Deaths: ' + grouped_country['CumDeaths'].astype(str))
 
     return fig
 
@@ -172,7 +184,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 #app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = html.Div(
-    style={'font-family': "Helvetica, sans-serif"},
+    style={'font-family': "Roboto, Garamond, Helvetica, sans-serif"},
     children=[
         html.H1('Tracking Coronavirus (COVID-19) Cases'),
         html.P(f'Updated on {last_updated}'),
@@ -208,7 +220,7 @@ app.layout = html.Div(
                              ),
                              html.P("GLOBAL DEATHS")
                          ]),
-                html.Div(className="nine columns",
+                html.Div(className="five columns",
                          children=[
                              dcc.Graph(id='world_map',
                                        figure=world_map,
@@ -294,7 +306,7 @@ def linechart(data, metrics, prefix="", yaxisTitle=""):
               plot_bgcolor='#FFFFFF', font=tick_font) \
           .update_xaxes(
               title="", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
-              tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date) \
+              tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date, showticklabels=False) \
           .update_yaxes(
               title=yaxisTitle, showgrid=True, gridcolor='#DDDDDD')
     return figure
@@ -319,7 +331,7 @@ def barchart(data, metrics, prefix="", yaxisTitle=""):
               plot_bgcolor='#FFFFFF', font=tick_font) \
           .update_xaxes(
               title="", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
-              tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date) \
+              tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date, showticklabels=False) \
           .update_yaxes(
               title=yaxisTitle, showgrid=True, gridcolor='#DDDDDD')
     return figure
@@ -335,7 +347,7 @@ def update_plot_new_metrics(country, state, metrics):
     return barchart(data,
                     metrics,
                     prefix="New",
-                    yaxisTitle="New Cases per Day")
+                    yaxisTitle="Daily Increase")
 
 
 @app.callback(Output('plot_cum_metrics', 'figure'), [
@@ -359,8 +371,7 @@ def update_plot_cum_metrics(country, state, metrics):
 #     else:
 #         return open('location_map.html', 'r').read()
 
+server = app.server
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-
-server = app.server
