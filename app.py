@@ -32,8 +32,7 @@ def loadData(fileName, columnName):
 
 # Getting data
 all_data = loadData("time_series_covid19_confirmed_global.csv", "CumConfirmed") \
-    .merge(loadData("time_series_covid19_deaths_global.csv", "CumDeaths")) \
-    .merge(loadData("time_series_covid19_recovered_global.csv", "CumRecovered"))
+    .merge(loadData("time_series_covid19_deaths_global.csv", "CumDeaths"))
 
 # Combining lat and lon into a new 'location' column
 all_data['location'] = list(zip(all_data['Lat'], all_data['Long']))
@@ -43,8 +42,20 @@ country_list = sorted(all_data['Country/Region'].unique()) # For callback functi
 # Grouping data by country
 grouped_country = all_data.groupby('Country/Region').max().reset_index()
 grouped_country.drop('Province/State', axis=1, inplace=True)
-total_confirmed = grouped_country['CumConfirmed'].sum().astype(str)
-total_deaths = grouped_country['CumDeaths'].sum().astype(str)
+# total_confirmed = grouped_country['CumConfirmed'].sum().astype(str)
+# total_deaths = grouped_country['CumDeaths'].sum().astype(str)
+total_confirmed = format(grouped_country['CumConfirmed'].sum(), ",")
+total_deaths = format(grouped_country['CumDeaths'].sum(), ",")
+grouped_country['DeathRate'] = (grouped_country.CumDeaths /
+                                grouped_country.CumConfirmed) * 100
+
+greater_one = grouped_country[grouped_country['DeathRate'] > 0]
+
+more_than_100 = greater_one[greater_one.CumConfirmed > 100]
+
+mean = more_than_100.DeathRate.mean()
+
+
 #print(total_confirmed)
 #print(total_deaths)
 
@@ -64,22 +75,23 @@ grouped_country['code'] = codes # Creating new column with 3-letter country code
 grouped_country.loc[20, 'code'] = 'BOL'
 grouped_country.loc[24, 'code'] = 'BWN'
 grouped_country.loc[27, 'code'] = 'MMR'
-grouped_country.loc[37, 'code'] = 'COG'
-grouped_country.loc[38, 'code'] = 'COD'
-grouped_country.loc[40, 'code'] = 'CIV'
-grouped_country.loc[73, 'code'] = 'VAT'
-grouped_country.loc[79, 'code'] = 'IRN'
-grouped_country.loc[89, 'code'] = 'KOR'
-grouped_country.loc[90, 'code'] = 'RKS'
-grouped_country.loc[93, 'code'] = 'LAO'
-grouped_country.loc[111, 'code'] = 'MDA'
-grouped_country.loc[136, 'code'] = 'RUS'
-grouped_country.loc[158, 'code'] = 'TWN'
-grouped_country.loc[159, 'code'] = 'TZA'
-grouped_country.loc[165, 'code'] = 'USA'
-grouped_country.loc[172, 'code'] = 'VEN'
-grouped_country.loc[173, 'code'] = 'VNM'
-grouped_country.loc[174, 'code'] = 'PSE'
+grouped_country.loc[38, 'code'] = 'COG'
+grouped_country.loc[39, 'code'] = 'COD'
+grouped_country.loc[41, 'code'] = 'CIV'
+grouped_country.loc[74, 'code'] = 'VAT'
+grouped_country.loc[80, 'code'] = 'IRN'
+grouped_country.loc[90, 'code'] = 'KOR'
+grouped_country.loc[91, 'code'] = 'RKS'
+grouped_country.loc[94, 'code'] = 'LAO'
+grouped_country.loc[112, 'code'] = 'MDA'
+grouped_country.loc[138, 'code'] = 'RUS'
+grouped_country.loc[160, 'code'] = 'SYR'
+grouped_country.loc[161, 'code'] = 'TWN'
+grouped_country.loc[162, 'code'] = 'TZA'
+grouped_country.loc[169, 'code'] = 'USA'
+grouped_country.loc[176, 'code'] = 'VEN'
+grouped_country.loc[177, 'code'] = 'VNM'
+grouped_country.loc[178, 'code'] = 'PSE'
 
 #grouped_country.head()
 
@@ -113,17 +125,25 @@ def world_map():
                         },
                         #featureidkey="grouped_country.CumDeaths",
                         scope='world')
-    fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, coloraxis_colorbar=dict(
-    title="Confirmed Cases",
-    tickvals=[1.5, 2.5, 3.5, 4.5],
-    ticktext=["100", "1k", "10k", "100k"],
-),hovermode="x",
-                      hoverlabel=dict(bgcolor="#BF4025",
-                                      font_size=16,
-                                      ),
+    fig.update_layout(margin={
+        "r": 0,
+        "t": 0,
+        "l": 0,
+        "b": 0
+    },
+                      coloraxis_colorbar=dict(
+                          title="<b>Confirmed Cases</b> <br>" + "(Log Scale)",
+                          tickvals=[1.5, 2.5, 3.5, 4.5],
+                          ticktext=["100", "1k", "10k", "100k"],
+                      ),
+                      hovermode="x",
+                      hoverlabel=dict(
+                          bgcolor="#BF4025",
+                          font_size=16,
+                      ),
                       geo=dict(showframe=False,
                                showcoastlines=False,
-                               projection_type='orthographic'))
+                               projection_type='natural earth'))
     fig.update_traces(hovertemplate='<b>' + grouped_country['Country/Region'] +
                       '</b>' + '<br>' + 'Confirmed Cases: ' +
                       grouped_country['CumConfirmed'].astype(str) + '<br>' +
@@ -186,48 +206,96 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.layout = html.Div(
     style={'font-family': "Roboto, Garamond, Helvetica, sans-serif"},
     children=[
-        html.H1('Tracking Coronavirus (COVID-19) Cases'),
-        html.P(f'Updated on {last_updated}'),
+        html.H1(
+            'Tracking Coronavirus (COVID-19) Cases',
+            style={
+                'font-family': 'Rockwell',
+                'color': colors['text'],
+                'font-size': '50px',
+                # 'text-align': 'left',
+                # 'font-weight': '400',
+                # 'margin-left': '30px'
+            }),
+        html.P(f'Updated on {last_updated}',
+               style={
+                   'font-size': '12px',
+                   'margin-top': '0px'
+               }),
         #html.Iframe(id='map', srcDoc = open('./location_map.html', 'r').read(), width='95%', height='500'),
         #dcc.Graph(id='world_map', figure=world_map),
         #html.Button(id='map-submit-button', n_clicks=0, children='Refresh Map'),
         html.Div(
             className="row",
             children=[
-                html.Div(className="two columns",
-                         children=[
-                             html.H5(
-                                 total_confirmed,
-                                 style={
-                                     'color': colors['text'],
-                                     'font-size': '50px',
-                                     'text-align': 'left',
-                                     'font-weight': '400'
-                                 },
-                             ),
-                             html.P("GLOBAL CONFIRMED CASES")
-                         ]),
-                html.Div(className="two columns",
-                         children=[
-                             html.H5(
-                                 total_deaths,
-                                 style={
-                                     'color': colors['text'],
-                                     'font-size': '50px',
-                                     'text-align': 'left',
-                                     'font-weight': '400'
-                                 },
-                             ),
-                             html.P("GLOBAL DEATHS")
-                         ]),
-                html.Div(className="five columns",
+                html.Div(
+                    className="three columns",
+                    children=[
+                        html.H5(
+                            total_confirmed,
+                            style={
+                                'font-family': 'Rockwell',
+                                'color': colors['text'],
+                                'font-size': '50px',
+                                'text-align': 'left',
+                                'font-weight': '400',
+                                'margin-left': '30px',
+                                'margin-bottom': '0px'
+                            },
+                        ),
+                        html.P(
+                            "GLOBAL CONFIRMED CASES",
+                            style={
+                                #    'color': colors['text'],
+                                'font-size': '20px',
+                                #    'text-align': 'left',
+                                'font-weight': '200',
+                                'margin-left': '30px',
+                                'margin-top': '0px'
+                            }),
+                        html.H5(
+                            total_deaths,
+                            style={
+                                'font-family': 'Rockwell',
+                                'color': colors['text'],
+                                'font-size': '50px',
+                                'text-align': 'left',
+                                'font-weight': '400',
+                                'margin-left': '30px',
+                                'margin-bottom': '0px'
+                            },
+                        ),
+                        html.P(
+                            "GLOBAL DEATHS",
+                            style={
+                                # 'color': colors['text'],
+                                'font-size': '20px',
+                                # 'text-align': 'left',
+                                'font-weight': '200',
+                                'margin-left': '30px',
+                                'margin-top': '0px'
+                            })
+                    ]),
+                # html.Div(className="two columns",
+                #          children=[
+                #              html.H5(
+                #                  total_deaths,
+                #                  style={
+                #                      'color': colors['text'],
+                #                      'font-size': '50px',
+                #                      'text-align': 'left',
+                #                      'font-weight': '400'
+                #                  },
+                #              ),
+                #              html.P("GLOBAL DEATHS")
+                #          ]),
+                html.Div(className="seven columns",
                          children=[
                              dcc.Graph(id='world_map',
                                        figure=world_map,
                                        config={'displayModeBar': False})
                          ]),
                 #dcc.Graph(id='world_map', figure=world_map),
-                html.Div(className="four columns",
+                html.Div(className="six columns",
                          children=[
                              html.H5('Country'),
                              dcc.Dropdown(id='country',
@@ -237,13 +305,10 @@ app.layout = html.Div(
                                           } for c in country_list],
                                           value='US')
                          ]),
-                html.Div(className="four columns",
+                html.Div(className="six columns",
                          children=[
                              html.H5('State / Province'),
-                             dcc.Dropdown(id='state')
-                         ]),
-                html.Div(className="two columns",
-                         children=[
+                             dcc.Dropdown(id='state'),
                              html.H5('Selected Metrics'),
                              dcc.Checklist(id='metrics',
                                            options=[{
@@ -251,10 +316,16 @@ app.layout = html.Div(
                                                'value': m
                                            } for m in ['Confirmed', 'Deaths']],
                                            value=['Confirmed', 'Deaths'])
-                         ])
+                         ]),
+                # html.Div(className="seven columns", children=[])
             ]),
-        dcc.Graph(id="plot_new_metrics", config={'displayModeBar': False}),
-        dcc.Graph(id="plot_cum_metrics", config={'displayModeBar': False})
+        html.Div(className="ten columns",
+                 children=[
+                     dcc.Graph(id="plot_new_metrics",
+                               config={'displayModeBar': False}),
+                     dcc.Graph(id="plot_cum_metrics",
+                               config={'displayModeBar': False})
+                 ]),
     ])
 
 
@@ -302,10 +373,10 @@ def linechart(data, metrics, prefix="", yaxisTitle=""):
                    mode='lines+markers') for metric in metrics
     ])
     figure.update_layout(
-              barmode='group', legend=dict(x=.05, y=0.95, font={'size':15}, bgcolor='rgba(0,0,0,0)'),
+              barmode='group', legend=dict(x=.05, y=0.95, font={'size':18}, bgcolor='rgba(0,0,0,0)'),
               plot_bgcolor='#FFFFFF', font=tick_font) \
           .update_xaxes(
-              title="", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
+              title="Days -------------------->", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
               tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date, showticklabels=False) \
           .update_yaxes(
               title=yaxisTitle, showgrid=True, gridcolor='#DDDDDD')
@@ -327,10 +398,10 @@ def barchart(data, metrics, prefix="", yaxisTitle=""):
             }[metric]) for metric in metrics
     ])
     figure.update_layout(
-              barmode='group', legend=dict(x=.05, y=0.95, font={'size':15}, bgcolor='rgba(0,0,0,0)'),
+              barmode='group', legend=dict(x=.05, y=0.95, font={'size':18}, bgcolor='rgba(0,0,0,0)'),
               plot_bgcolor='#FFFFFF', font=tick_font) \
           .update_xaxes(
-              title="", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
+              title="Days -------------------->", tickangle=-90, type='category', showgrid=False, gridcolor='#DDDDDD',
               tickfont=tick_font, ticktext=data.dateStr, tickvals=data.date, showticklabels=False) \
           .update_yaxes(
               title=yaxisTitle, showgrid=True, gridcolor='#DDDDDD')
