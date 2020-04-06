@@ -135,6 +135,10 @@ def world_map():
                           title="<b>Confirmed Cases</b> <br>" + "(Log Scale)",
                           tickvals=[1.5, 2.5, 3.5, 4.5],
                           ticktext=["100", "1k", "10k", "100k"],
+                          thicknessmode="pixels",
+                          thickness=10,
+                          lenmode="pixels",
+                          len=200,
                       ),
                       hovermode="x",
                       hoverlabel=dict(
