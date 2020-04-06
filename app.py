@@ -86,12 +86,12 @@ grouped_country.loc[94, 'code'] = 'LAO'
 grouped_country.loc[112, 'code'] = 'MDA'
 grouped_country.loc[138, 'code'] = 'RUS'
 grouped_country.loc[160, 'code'] = 'SYR'
-grouped_country.loc[161, 'code'] = 'TWN'
-grouped_country.loc[162, 'code'] = 'TZA'
-grouped_country.loc[169, 'code'] = 'USA'
-grouped_country.loc[176, 'code'] = 'VEN'
-grouped_country.loc[177, 'code'] = 'VNM'
-grouped_country.loc[178, 'code'] = 'PSE'
+grouped_country.loc[162, 'code'] = 'TWN'
+grouped_country.loc[163, 'code'] = 'TZA'
+grouped_country.loc[170, 'code'] = 'USA'
+grouped_country.loc[177, 'code'] = 'VEN'
+grouped_country.loc[178, 'code'] = 'VNM'
+grouped_country.loc[179, 'code'] = 'PSE'
 
 #grouped_country.head()
 
