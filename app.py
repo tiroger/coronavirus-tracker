@@ -84,19 +84,32 @@ grouped_states = us_data.groupby(
     }).reset_index()
 
 
-# Opening pickled country code dictionary
+# Opening pickled country code dictionary and Mapping codes to countries in dataset
 complete_country_code_dict = pd.read_pickle(
     'pickled_files/complete_country_code_dict.pkl')
-
-# Mapping codes to countries in dataset
-# Mapping codes to countries in dataset
 grouped['code'] = grouped['Country'].map(complete_country_code_dict)
 # Double checking missing values
 missing_codes = len(grouped[grouped.code == 'Unknown code'][['Country']])
 print(f'There are {missing_codes} missing 3-letter codes in dataset')
 print('-------')
-grouped.head()
+#grouped.head()
 
+# Opening pickled dictionary with population data and mapping to countries
+pop_dict = pd.read_pickle('./pickled_files/population_dict.pkl')
+# Mapping populations to countries in dataset
+world_data['population'] = world_data['Country'].map(pop_dict)
+# Double checking missing values
+missing_populations = len(
+    world_data[world_data.population.isna()][['population']])
+print(f'There are {missing_populations} missing populations in dataset')
+print('-------')
+world_data.head()
+
+# Calculating cases per 100,000 population
+world_data['casesPerCapita'] = world_data['Confirmed'] / world_data[
+    'population'] * 100000
+world_data['deathsPerCapita'] = world_data['Deaths'] / world_data[
+    'population'] * 100000
 
 # # Opening pickled country code dictionary
 # complete_country_code_dict = pd.read_pickle('pickled_files/complete_country_code_dict.pkl')
@@ -207,16 +220,16 @@ card_content2 = [
 ##############
 
 
-def lineChart():
+def lineChart(country, metrics, yaxisTitle=""):
 
-    fig = px.line(df_select, x="Date", y="Confirmed", color='Country')
+    fig = px.line(df_select, x=world_data[world_data['Country'] == country]['Date'], y=world_data[world_data['Country'] == country][metrics])
     fig.update_xaxes(title='')
     fig.update_yaxes(title='Cummulative Cases')
     # fig.update_traces(textposition='top center')
 
     # fig.update_traces(texttemplate='%{text:.2s}')
     fig.update_layout(
-        title="COVID-19 Cases by Country, Top 10",
+        title="COVID-19 Cases by Country",
         template="plotly_dark",
         legend_orientation="h",
         margin={
@@ -227,47 +240,67 @@ def lineChart():
         },
     )
 
+    # fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
+    #                   '<br>' + 'Date: ' + df_select['Date'].astype(str) +
+    #                   '<br>' + 'Confirmed Cases: ' +
+    #                   df_select['Confirmed'].astype(str))
     return fig
 
 
-line_chart = lineChart()
+# line_chart = lineChart()
 
 
+def perCapita():
 
-#############
-# BAR CHART #
-#############
-
-
-def newCases():
-
-    fig = px.bar(df_select,
-                 x='Date',
-                 y='Confirmed',
-                 color='Country',
-                 barmode='group')
-
-    fig.update_layout(template="plotly_dark",
-                      legend_orientation="h",
-                      margin={
-                          "r": 0,
-                          "t": 25,
-                          "l": 0,
-                          "b": 0
-                      })
-
+    fig = px.line(df_select, x="Date", y="confirmedPerCapita", color='Country')
     fig.update_xaxes(title='')
-    fig.update_yaxes(title='New Cases per Day')
+    fig.update_yaxes(title='Cummulative Cases per 100,000')
+    # fig.update_traces(textposition='top center')
+
+    # fig.update_traces(texttemplate='%{text:.2s}')
+    fig.update_layout(template="plotly_dark")
 
     fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
                       '<br>' + 'Date: ' + df_select['Date'].astype(str) +
                       '<br>' + 'Confirmed Cases: ' +
                       df_select['Confirmed'].astype(str))
 
+    # fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
+    #                   '<br>' + 'Date: ' + df_select['Date'].astype(str) +
+    #                   '<br>' + 'Confirmed Cases per 100,000 people: ' +
+    #                   df_select['confirmedPerCapita'].astype(str))
+
     return fig
 
 
-bar_chart = newCases()
+#############
+# BAR CHART #
+#############
+
+def newCases(country, metrics, yaxisTitle=""):
+
+    figure = px.bar(world_data,
+                 x=world_data[world_data['Country'] == country]['Date'],
+                 y=world_data[world_data['Country'] == country][metrics])
+
+    figure.update_layout(template="plotly_dark",
+                      legend_orientation="h",
+                      margin={
+                          "r": 0,
+                          "t": 25,
+                          "l": 0,
+                          "b": 50
+                      })
+    figure.update_xaxes(title='')
+    figure.update_yaxes(title='New Cases per Day')
+
+    # fig.update_traces(hovertemplate='New Cases: ' +
+    #                   world_data[metric].astype(str))
+
+    return figure
+
+
+# bar_chart = newCases()
 
 
 ####################
@@ -282,24 +315,23 @@ app.layout = dbc.Container([
             className="lead",
         )
     ]),
-    dbc.Row(
-        dcc.RadioItems(id='radio',
-                       options=[{
-                           'label': 'Confirmed Cases',
-                           'value': 'confirmed'
-                       }, {
-                           'label': 'Deaths',
-                           'value': 'deaths'
-                       }],
-                       value='confirmed',
-                       labelStyle={'display': 'inline-block'})),
+    # dbc.Row(
+    #     dcc.RadioItems(id='radio',
+    #                    options=[{
+    #                        'label': 'Confirmed Cases',
+    #                        'value': 'confirmed'
+    #                    }, {
+    #                        'label': 'Deaths',
+    #                        'value': 'deaths'
+    #                    }],
+    #                    value='confirmed',
+    #                    labelStyle={'display': 'inline-block'})),
     dbc.Row([
         dbc.Col(html.Div(dcc.Graph(id='choropleth', figure=world_map)),
                 width='16'),
         dbc.Col(children=[
             dbc.Row(
-                dbc.Col(dbc.Card(
-                    card_content1, color="dark", inverse=True),
+                dbc.Col(dbc.Card(card_content1, color="dark", inverse=True),
                         width="12")),
             dbc.Row(' '),
             dbc.Row(
@@ -309,36 +341,26 @@ app.layout = dbc.Container([
     ]),
     dbc.Row([
         dbc.Col(
-            dcc.Checklist(id='checklist',
-                          options=[{
-                              'label': 'Confirmed Cases',
-                              'value': 'Confirmed'
-                          }, {
-                              'label': 'Death',
-                              'value': 'Deaths'
-                          }],
-                          value=['Confirmed'],
-                          labelStyle={'display': 'inline-block'})),
+            dcc.RadioItems(id='metrics',
+                           options=[{
+                               'label': m,
+                               'value': m
+                           } for m in ['Confirmed', 'Deaths']],
+                           value='Confirmed',
+                           labelStyle={'display': 'inline-block'})),
         dbc.Col(
-            dcc.Dropdown(id='dropdown',
+            dcc.Dropdown(id='country',
                          options=[{
-                             'label': 'US',
-                             'value': 'US'
-                         }, {
-                             'label': 'China',
-                             'value': 'China'
-                         }, {
-                             'label': 'San Francisco',
-                             'value': 'SF'
-                         }],
-                         value=['US', 'China'],
-                         multi=True))
+                             'label': c,
+                             'value': c
+                         } for c in world_data.Country.unique()],
+                         value='US',
+                         multi=False))
     ]),
     dbc.Row([
-        dbc.Col(html.Div(dcc.Graph(id='lineChart', figure=line_chart)),
+        dbc.Col(html.Div(dcc.Graph(id='lineChart')),
                 width='6'),
-        dbc.Col(html.Div(dcc.Graph(id='barChart', figure=bar_chart)),
-                width='6'),
+        dbc.Col(html.Div(dcc.Graph(id='barChart')), width='6'),
     ])
 ])
 
@@ -353,8 +375,28 @@ app.layout = dbc.Container([
 # ])
 ##
 
+#######################
+# CALL BACK FUNCTIONS #
+#######################
+
+
+@app.callback(Output('barChart', 'figure'),
+              [Input('country', 'value'),
+               Input('metrics', 'value')])
+def update_plot(country, metrics):
+    return newCases(country, metrics, yaxisTitle="Daily Increase")
+
+
+@app.callback(Output('lineChart', 'figure'),
+              [Input('country', 'value'),
+               Input('metrics', 'value')])
+def update_plot_total(country, metrics):
+    return lineChart(country, metrics, yaxisTitle="Daily Increase")
+
+
+
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 server = app.server
