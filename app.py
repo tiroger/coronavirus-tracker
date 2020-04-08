@@ -21,14 +21,14 @@ import dash_bootstrap_components as dbc
 
 #############
 
-#external_stylesheets = ['./style.css']  # Stylesheet for app
-
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 ####################################################
 # GATHERING AND PARSING DATA FOR CHARTS AND GRAPHS #
 ####################################################
+
 base_url = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/"
+
 
 # Functions for gathering datasets from John Hopkins's repository
 def world_data():
@@ -50,7 +50,6 @@ def usData(fileName, columnName):
     #data['date'] = data['date'].astype('datetime64[ns]')
     return data
 
-
 ########################
 
 # US data
@@ -70,12 +69,56 @@ grouped = world_data.groupby(['Country']).agg({
     'Confirmed': 'max',
     'Deaths': 'max'
 }).sort_values(by=['Confirmed'], ascending=False).reset_index()
+grouped['fatalityRate'] = grouped.Deaths / grouped.Confirmed * 100
 top_10 = list(grouped.Country[0:10])
-top_10
+
+grouped['fatalityRate'] = grouped.Deaths / grouped.Confirmed * 100
+
+######################
+# Fatality Bar Chart #
+######################
+
+def fatalityRate():
+    # Limiting graph to countries with more than 1000 cases
+    x = grouped[grouped.Confirmed > 1000]["Country"]
+    y = grouped[grouped.Confirmed > 1000]["fatalityRate"]
+
+    fig = px.bar(grouped,
+                 x=x,
+                 y=y,
+                 text=grouped[grouped.Confirmed > 1000]["fatalityRate"])
+    fig.update_traces(texttemplate='%{text:.2s}',
+                      textposition='outside',
+                      marker_color='crimson',
+                      marker_line_color='crimson',
+                      marker_line_width=1.5,
+                      opacity=0.6)
+    fig.update_layout(xaxis={'categoryorder': 'total descending', 'title':''},
+                      template="plotly_dark",
+                      yaxis={'title': 'Current Death Rates <br> >1000 cases'},
+                      uniformtext_minsize=9,
+                      uniformtext_mode='hide',
+                      margin={
+                          "r": 0,
+                          "t": 0,
+                          "l": 0,
+                          "b": 0
+                      })
+    return fig
+
+
+fatalityChart = fatalityRate()
+
+#########################################
+
+grouped_country = world_data.groupby(['Country', 'Date']).agg({
+    'Confirmed': 'max',
+    'Deaths': 'max'
+}).reset_index()
+grouped_country['newConfirmed'] = grouped_country['Confirmed'].diff().fillna(0)
+grouped_country['newDeaths'] = grouped_country['Deaths'].diff().fillna(0)
 
 df_select = world_data[world_data['Country'].isin(top_10)].copy()
-df_select
-
 
 grouped_states = us_data.groupby(
     ['date', 'Province_State', 'FIPS', 'Lat', 'Long_']).agg({
@@ -83,16 +126,15 @@ grouped_states = us_data.groupby(
         'Deaths': 'max'
     }).reset_index()
 
-
 # Opening pickled country code dictionary and Mapping codes to countries in dataset
 complete_country_code_dict = pd.read_pickle(
     'pickled_files/complete_country_code_dict.pkl')
 grouped['code'] = grouped['Country'].map(complete_country_code_dict)
 # Double checking missing values
 missing_codes = len(grouped[grouped.code == 'Unknown code'][['Country']])
-print(f'There are {missing_codes} missing 3-letter codes in dataset')
-print('-------')
-#grouped.head()
+# print(f'There are {missing_codes} missing 3-letter codes in dataset')
+# print('-------')
+# #grouped.head()
 
 # Opening pickled dictionary with population data and mapping to countries
 pop_dict = pd.read_pickle('./pickled_files/population_dict.pkl')
@@ -101,9 +143,9 @@ world_data['population'] = world_data['Country'].map(pop_dict)
 # Double checking missing values
 missing_populations = len(
     world_data[world_data.population.isna()][['population']])
-print(f'There are {missing_populations} missing populations in dataset')
-print('-------')
-world_data.head()
+# print(f'There are {missing_populations} missing populations in dataset')
+# print('-------')
+# world_data.head()
 
 # Calculating cases per 100,000 population
 world_data['casesPerCapita'] = world_data['Confirmed'] / world_data[
@@ -111,23 +153,15 @@ world_data['casesPerCapita'] = world_data['Confirmed'] / world_data[
 world_data['deathsPerCapita'] = world_data['Deaths'] / world_data[
     'population'] * 100000
 
-# # Opening pickled country code dictionary
-# complete_country_code_dict = pd.read_pickle('pickled_files/complete_country_code_dict.pkl')
-
-# # Mapping codes to countries in dataset
-# grouped_countries['code'] = grouped_countries['Country/Region'].map(complete_country_code_dict)
-# # Double checking missing values
-# # missing_codes = len(grouped_countries[grouped_countries.code == 'Unknown code'][['Country/Region']])
-# # print(f'There are {missing_codes} missing 3-letter codes in dataset')
-# # print('-------')
-# # grouped_countries.head()
-
 # # Last time data was updated
 last_update = world_data.Date.max()
+
+print('Data Loaded')
 
 ##############
 # CHOROPLETH #
 ##############
+
 
 def world_map():
 
@@ -137,7 +171,7 @@ def world_map():
         #title="Custom layout.hoverlabel formatting",
         hover_name="Country",
         hover_data=["Confirmed", "Deaths"],
-        color=grouped["Confirmed"],
+        color=np.log10(grouped["Confirmed"]),
         color_continuous_scale='Reds',
         #range_color=(0, 100),
         labels={
@@ -191,7 +225,6 @@ world_map = world_map()
 total_confirmed = grouped.Confirmed.sum()
 total_deaths = grouped.Deaths.sum()
 
-
 card_content1 = [
     dbc.CardHeader("CONFIRMED CASES"),
     dbc.CardBody([
@@ -214,7 +247,6 @@ card_content2 = [
     ]),
 ]
 
-
 ##############
 # LINE CHART #
 ##############
@@ -222,7 +254,9 @@ card_content2 = [
 
 def lineChart(country, metrics, yaxisTitle=""):
 
-    fig = px.line(df_select, x=world_data[world_data['Country'] == country]['Date'], y=world_data[world_data['Country'] == country][metrics])
+    fig = px.line(df_select,
+                  x=world_data[world_data['Country'] == country]['Date'],
+                  y=world_data[world_data['Country'] == country][metrics])
     fig.update_xaxes(title='')
     fig.update_yaxes(title='Cummulative Cases')
     # fig.update_traces(textposition='top center')
@@ -277,20 +311,23 @@ def perCapita():
 # BAR CHART #
 #############
 
+
 def newCases(country, metrics, yaxisTitle=""):
 
-    figure = px.bar(world_data,
-                 x=world_data[world_data['Country'] == country]['Date'],
-                 y=world_data[world_data['Country'] == country][metrics])
+    figure = px.bar(
+        grouped_country,
+        x=grouped_country[grouped_country['Country'] == country]['Date'][1:],
+        y=grouped_country[grouped_country['Country'] == country]['new' +
+                                                                 metrics][1:])
 
     figure.update_layout(template="plotly_dark",
-                      legend_orientation="h",
-                      margin={
-                          "r": 0,
-                          "t": 25,
-                          "l": 0,
-                          "b": 50
-                      })
+                         legend_orientation="h",
+                         margin={
+                             "r": 0,
+                             "t": 25,
+                             "l": 0,
+                             "b": 50
+                         })
     figure.update_xaxes(title='')
     figure.update_yaxes(title='New Cases per Day')
 
@@ -301,7 +338,6 @@ def newCases(country, metrics, yaxisTitle=""):
 
 
 # bar_chart = newCases()
-
 
 ####################
 # DASHBOARD LAYOUT #
@@ -358,10 +394,10 @@ app.layout = dbc.Container([
                          multi=False))
     ]),
     dbc.Row([
-        dbc.Col(html.Div(dcc.Graph(id='lineChart')),
-                width='6'),
+        dbc.Col(html.Div(dcc.Graph(id='lineChart')), width='6'),
         dbc.Col(html.Div(dcc.Graph(id='barChart')), width='6'),
-    ])
+    ]),
+    dbc.Row([dbc.Col(dcc.Graph(id='fatalityChart', figure=fatalityChart))])
 ])
 
 # app.layout = html.Div(children=[
@@ -394,9 +430,7 @@ def update_plot_total(country, metrics):
     return lineChart(country, metrics, yaxisTitle="Daily Increase")
 
 
-
-
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 
 server = app.server
