@@ -104,6 +104,12 @@ def fatalityRate():
                           "l": 0,
                           "b": 0
                       })
+    fig.update_traces(
+        hovertemplate='Country: ' +
+        grouped[grouped.Confirmed > 1000]["Country"].astype(str) + '<br>' +
+        'Fatality Rate: ' +
+        round(grouped[grouped.Confirmed > 1000]["fatalityRate"], 2).astype(str) + '%')
+    
     return fig
 
 
