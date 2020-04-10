@@ -154,7 +154,7 @@ world_data['deathsPerCapita'] = world_data['Deaths'] / world_data[
     'population'] * 100000
 
 # # Last time data was updated
-last_update = world_data.Date.max()
+last_update = world_data.Date.max().strftime("%d-%b-%Y")
 
 print('Data Loaded')
 
@@ -240,10 +240,6 @@ card_content2 = [
     dbc.CardHeader("DEATHS"),
     dbc.CardBody([
         html.H5(f'{total_deaths:,}', className="aggregates"),
-        html.P(
-            "                    ",
-            className="card-text",
-        ),
     ]),
 ]
 
@@ -262,22 +258,23 @@ def lineChart(country, metrics, yaxisTitle=""):
     # fig.update_traces(textposition='top center')
 
     # fig.update_traces(texttemplate='%{text:.2s}')
-    fig.update_layout(
-        title="COVID-19 Cases by Country",
+    fig.update_layout(hovermode= 'x',
+        title="",
         template="plotly_dark",
         legend_orientation="h",
         margin={
             "r": 0,
-            "t": 25,
+            "t": 50,
             "l": 0,
             "b": 0
         },
     )
+    fig.update_xaxes(showspikes=True, spikethickness=1)
+    fig.update_yaxes(showspikes=True, spikethickness=1)
 
-    # fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
-    #                   '<br>' + 'Date: ' + df_select['Date'].astype(str) +
-    #                   '<br>' + 'Confirmed Cases: ' +
-    #                   df_select['Confirmed'].astype(str))
+    fig.update_traces(hovertemplate='Total Cases: ' + grouped_country[
+        grouped_country['Country'] == country][metrics].astype(str))
+
     return fig
 
 
@@ -320,19 +317,20 @@ def newCases(country, metrics, yaxisTitle=""):
         y=grouped_country[grouped_country['Country'] == country]['new' +
                                                                  metrics][1:])
 
-    figure.update_layout(template="plotly_dark",
+    figure.update_layout(hovermode='closest',
+                         template="plotly_dark",
                          legend_orientation="h",
                          margin={
                              "r": 0,
-                             "t": 25,
+                             "t": 50,
                              "l": 0,
                              "b": 50
                          })
     figure.update_xaxes(title='')
     figure.update_yaxes(title='New Cases per Day')
 
-    # fig.update_traces(hovertemplate='New Cases: ' +
-    #                   world_data[metric].astype(str))
+    figure.update_traces(hovertemplate='New Cases: ' + grouped_country[
+        grouped_country['Country'] == country][metrics].astype(str))
 
     return figure
 
@@ -363,18 +361,26 @@ app.layout = dbc.Container([
     #                    value='confirmed',
     #                    labelStyle={'display': 'inline-block'})),
     dbc.Row([
-        dbc.Col(html.Div(dcc.Graph(id='choropleth', figure=world_map)),
+        dbc.Col(html.Div(
+            dcc.Graph(id='choropleth',
+                      figure=world_map,
+                      config={'displayModeBar': False})),
                 width='16'),
         dbc.Col(children=[
             dbc.Row(
                 dbc.Col(dbc.Card(card_content1, color="dark", inverse=True),
                         width="12")),
-            dbc.Row(' '),
             dbc.Row(
                 dbc.Col(dbc.Card(card_content2, color="dark", inverse=True),
                         width="12"))
         ]),
     ]),
+    html.
+    H5("Confirmed COVID-19 cases and deaths - (Select country and metric below)",
+       id="chart-title"),
+    html.
+    P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
+      id="note"),
     dbc.Row([
         dbc.Col(
             dcc.RadioItems(id='metrics',
@@ -394,10 +400,20 @@ app.layout = dbc.Container([
                          multi=False))
     ]),
     dbc.Row([
-        dbc.Col(html.Div(dcc.Graph(id='lineChart')), width='6'),
-        dbc.Col(html.Div(dcc.Graph(id='barChart')), width='6'),
+        dbc.Col(html.Div(
+            dcc.Graph(id='lineChart', config={'displayModeBar': False})),
+                width='6'),
+        dbc.Col(html.Div(
+            dcc.Graph(id='barChart', config={'displayModeBar': False})),
+                width='6'),
     ]),
-    dbc.Row([dbc.Col(dcc.Graph(id='fatalityChart', figure=fatalityChart))])
+    html.Div([html.
+    H5("Current fatality rates for countries with more than 1000 confirmed cases)",
+       id="fatality-chart"),
+    html.
+    P("Note: There may be factors that account for increased death rates such  as coinfection, more inadequate healthcare, patient demographics (i.e., older patients might be more prevalent in countries such as Italy).",
+      id="note2"),
+    dbc.Row([dbc.Col(dcc.Graph(id='fatalityChart', figure=fatalityChart))])])
 ])
 
 # app.layout = html.Div(children=[
@@ -431,6 +447,6 @@ def update_plot_total(country, metrics):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 server = app.server
