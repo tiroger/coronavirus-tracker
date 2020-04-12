@@ -38,24 +38,24 @@ def world_data():
     return data
 
 
-def usData(fileName, columnName):
-    data = pd.read_csv(base_url + fileName) \
-             .melt(id_vars=['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Province_State',
-       'Country_Region', 'Lat', 'Long_', 'Combined_Key'], var_name='date', value_name=columnName) \
-             .fillna('<all>')
-    # Get names of indexes for which column Date has extra strings has value 30
-    indexNames = data[data['date'] == 'Population'].index
-    # Delete these row indexes from dataFrame
-    data.drop(indexNames, inplace=True)
-    #data['date'] = data['date'].astype('datetime64[ns]')
-    return data
+# def usData(fileName, columnName):
+#     data = pd.read_csv(base_url + fileName) \
+#              .melt(id_vars=['UID', 'iso2', 'iso3', 'code3', 'FIPS', 'Admin2', 'Province_State',
+#        'Country_Region', 'Lat', 'Long_', 'Combined_Key'], var_name='date', value_name=columnName) \
+#              .fillna('<all>')
+#     # Get names of indexes for which column Date has extra strings has value 30
+#     indexNames = data[data['date'] == 'Population'].index
+#     # Delete these row indexes from dataFrame
+#     data.drop(indexNames, inplace=True)
+#     #data['date'] = data['date'].astype('datetime64[ns]')
+#     return data
 
-########################
+# ########################
 
-# US data
-us_data = usData("time_series_covid19_confirmed_US.csv", "Confirmed") \
-    .merge(usData("time_series_covid19_deaths_US.csv", "Deaths"))
-us_data.head()
+# # US data
+# us_data = usData("time_series_covid19_confirmed_US.csv", "Confirmed") \
+#     .merge(usData("time_series_covid19_deaths_US.csv", "Deaths"))
+# us_data.head()
 
 # World data
 world_data = world_data()
@@ -72,50 +72,7 @@ grouped = world_data.groupby(['Country']).agg({
 grouped['fatalityRate'] = grouped.Deaths / grouped.Confirmed * 100
 top_10 = list(grouped.Country[0:10])
 
-grouped['fatalityRate'] = grouped.Deaths / grouped.Confirmed * 100
-
-######################
-# Fatality Bar Chart #
-######################
-
-def fatalityRate():
-    # Limiting graph to countries with more than 1000 cases
-    x = grouped[grouped.Confirmed > 1000]["Country"]
-    y = grouped[grouped.Confirmed > 1000]["fatalityRate"]
-
-    fig = px.bar(grouped,
-                 x=x,
-                 y=y,
-                 text=grouped[grouped.Confirmed > 1000]["fatalityRate"])
-    fig.update_traces(texttemplate='%{text:.2s}',
-                      textposition='outside',
-                      marker_color='crimson',
-                      marker_line_color='crimson',
-                      marker_line_width=1.5,
-                      opacity=0.6)
-    fig.update_layout(xaxis={'categoryorder': 'total descending', 'title':''},
-                      template="plotly_dark",
-                      yaxis={'title': 'Current Death Rates <br> >1000 cases'},
-                      uniformtext_minsize=9,
-                      uniformtext_mode='hide',
-                      margin={
-                          "r": 0,
-                          "t": 0,
-                          "l": 0,
-                          "b": 0
-                      })
-    fig.update_traces(
-        hovertemplate='Country: ' +
-        grouped[grouped.Confirmed > 1000]["Country"].astype(str) + '<br>' +
-        'Fatality Rate: ' +
-        round(grouped[grouped.Confirmed > 1000]["fatalityRate"], 2).astype(str) + '%')
-    
-    return fig
-
-
-fatalityChart = fatalityRate()
-
-#########################################
+grouped['fatalityRate'] = round(grouped.Deaths / grouped.Confirmed * 100, 2)
 
 grouped_country = world_data.groupby(['Country', 'Date']).agg({
     'Confirmed': 'max',
@@ -126,26 +83,36 @@ grouped_country['newDeaths'] = grouped_country['Deaths'].diff().fillna(0)
 
 df_select = world_data[world_data['Country'].isin(top_10)].copy()
 
-grouped_states = us_data.groupby(
-    ['date', 'Province_State', 'FIPS', 'Lat', 'Long_']).agg({
-        'Confirmed': 'max',
-        'Deaths': 'max'
-    }).reset_index()
+# grouped_states = us_data.groupby(
+#     ['date', 'Province_State', 'FIPS', 'Lat', 'Long_']).agg({
+#         'Confirmed': 'max',
+#         'Deaths': 'max'
+#     }).reset_index()
 
 # Opening pickled country code dictionary and Mapping codes to countries in dataset
 complete_country_code_dict = pd.read_pickle(
     'pickled_files/complete_country_code_dict.pkl')
+# print(complete_country_code_dict)
 grouped['code'] = grouped['Country'].map(complete_country_code_dict)
 # Double checking missing values
-missing_codes = len(grouped[grouped.code == 'Unknown code'][['Country']])
+# missing_codes = len(grouped[grouped.code == 'Unknown code'][['Country']])
 # print(f'There are {missing_codes} missing 3-letter codes in dataset')
 # print('-------')
 # #grouped.head()
 
+# Adding population data
+complete_country_pop_dict = pd.read_pickle(
+    'pickled_files/complete_country_pop_dict.pkl')
+
+# Mapping population data to countries
+grouped['over_65'] = grouped['Country'].map(complete_country_pop_dict)
+
 # Opening pickled dictionary with population data and mapping to countries
 pop_dict = pd.read_pickle('./pickled_files/population_dict.pkl')
+
 # Mapping populations to countries in dataset
 world_data['population'] = world_data['Country'].map(pop_dict)
+
 # Double checking missing values
 missing_populations = len(
     world_data[world_data.population.isna()][['population']])
@@ -167,7 +134,6 @@ print('Data Loaded')
 ##############
 # CHOROPLETH #
 ##############
-
 
 def world_map():
 
@@ -221,7 +187,6 @@ def world_map():
                       grouped['Deaths'].astype(str))
     return fig
 
-
 world_map = world_map()
 
 ################
@@ -253,7 +218,6 @@ card_content2 = [
 # LINE CHART #
 ##############
 
-
 def lineChart(country, metrics, yaxisTitle=""):
 
     fig = px.line(df_select,
@@ -283,7 +247,6 @@ def lineChart(country, metrics, yaxisTitle=""):
 
     return fig
 
-
 # line_chart = lineChart()
 
 
@@ -302,18 +265,12 @@ def perCapita():
                       '<br>' + 'Confirmed Cases: ' +
                       df_select['Confirmed'].astype(str))
 
-    # fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
-    #                   '<br>' + 'Date: ' + df_select['Date'].astype(str) +
-    #                   '<br>' + 'Confirmed Cases per 100,000 people: ' +
-    #                   df_select['confirmedPerCapita'].astype(str))
-
     return fig
 
 
 #############
 # BAR CHART #
 #############
-
 
 def newCases(country, metrics, yaxisTitle=""):
 
@@ -335,14 +292,116 @@ def newCases(country, metrics, yaxisTitle=""):
     figure.update_xaxes(title='')
     figure.update_yaxes(title='New Cases per Day')
 
-    figure.update_traces(hovertemplate='New Cases: ' + grouped_country[
-        grouped_country['Country'] == country][metrics].astype(str))
+    figure.update_traces(hovertemplate='Date: ' + grouped_country[
+        grouped_country['Country'] == country]['Date'][1:].astype(str) +
+                         '<br>' + 'New Cases: ' +
+                         grouped_country[grouped_country['Country'] == country]
+                         ['new' + metrics][1:].astype(str))
 
     return figure
 
 
 # bar_chart = newCases()
 
+######################
+# Fatality Bar Chart #
+######################
+
+def fatalityRate():
+    # Limiting graph to countries with more than 1000 cases
+    x = grouped[grouped.Confirmed > 1000]["Country"]
+    y = grouped[grouped.Confirmed > 1000]["fatalityRate"]
+
+    fig = px.bar(grouped,
+                 x=x,
+                 y=y,
+                 text=grouped[grouped.Confirmed > 1000]["fatalityRate"])
+    fig.update_traces(texttemplate='%{text:.2s}',
+                      textposition='outside',
+                      marker_color='crimson',
+                      marker_line_color='crimson',
+                      marker_line_width=1.5,
+                      opacity=0.6)
+    fig.update_layout(xaxis={
+        'categoryorder': 'total descending',
+        'title': ''
+    },
+                      template="plotly_dark",
+                      yaxis={'title': 'Current Fatality Rates (%) <br> >1000 cases'},
+                      uniformtext_minsize=9,
+                      uniformtext_mode='hide',
+                      margin={
+                          "r": 0,
+                          "t": 0,
+                          "l": 0,
+                          "b": 0
+                      })
+    fig.update_traces(
+        hovertemplate='Country: ' +
+        grouped[grouped.Confirmed > 1000]["Country"].astype(str) + '<br>' +
+        'Fatality Rate: ' + round(
+            grouped[grouped.Confirmed > 1000]["fatalityRate"], 2).astype(str) +
+        '%')
+
+    return fig
+
+fatalityChart = fatalityRate()
+
+
+####################
+# CFR bubble chart #
+####################
+
+# Scatter of fatality rate vs population over 65
+grouped['fatalityRate'] = grouped.Deaths / grouped.Confirmed * 100
+grouped.loc[grouped['Deaths'] > 3000, 'Annotation'] = grouped['Country']
+grouped.loc[grouped['Deaths'] <= 3000, 'Annotation'] = ''
+
+
+def fatalityRate_65():
+    # Limiting graph to countries with more than 1000 cases
+    x = grouped["over_65"]
+    y = grouped["fatalityRate"]
+
+    fig = px.scatter(grouped,
+                     x=x,
+                     y=y,
+                     size=grouped['Deaths'],
+                     hover_name=grouped["Country"],
+                     text='Annotation')
+    fig.update_traces(marker_color='purple',
+                      marker_line_color='red',
+                      marker_line_width=1.5,
+                      opacity=0.9,
+                      textposition='top right')
+    fig.update_layout(
+        template="plotly_dark",
+        yaxis={'title': 'Case Fatality Rate (%)'},
+        xaxis={
+            'title': 'Population of age 65 and above (% of total population)'
+        },
+        uniformtext_minsize=14,
+        uniformtext_mode='hide',
+        margin={
+            "r": 0,
+            "t": 0,
+            "l": 0,
+            "b": 0
+        })
+
+    fig.update_traces(hovertemplate='<b>' + grouped['Country'] + '</b>' +
+                      '<br>' + 'CFR (%): ' +
+                      round(grouped['fatalityRate'], 2).astype(str) + '<br>' + 'Population over 65: ' + grouped['over_65'].astype(str) + '<br>' +
+                      'Confirmed Cases: ' + grouped['Confirmed'].astype(str) +
+                      '<br>' + 'Deaths: ' + grouped['Deaths'].astype(str))
+    return fig
+
+
+fatalityRate_65 = fatalityRate_65()
+
+
+#########################################
+print(grouped)
 ####################
 # DASHBOARD LAYOUT #
 ####################
@@ -355,17 +414,11 @@ app.layout = dbc.Container([
             className="lead",
         )
     ]),
-    # dbc.Row(
-    #     dcc.RadioItems(id='radio',
-    #                    options=[{
-    #                        'label': 'Confirmed Cases',
-    #                        'value': 'confirmed'
-    #                    }, {
-    #                        'label': 'Deaths',
-    #                        'value': 'deaths'
-    #                    }],
-    #                    value='confirmed',
-    #                    labelStyle={'display': 'inline-block'})),
+    html.H5("Global confirmed COVID-19 cases and deaths",
+            id="choropleth-title"),
+    html.
+    P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
+      id="note"),
     dbc.Row([
         dbc.Col(html.Div(
             dcc.Graph(id='choropleth',
@@ -386,7 +439,7 @@ app.layout = dbc.Container([
        id="chart-title"),
     html.
     P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
-      id="note"),
+      id="note1"),
     dbc.Row([
         dbc.Col(
             dcc.RadioItems(id='metrics',
@@ -413,25 +466,26 @@ app.layout = dbc.Container([
             dcc.Graph(id='barChart', config={'displayModeBar': False})),
                 width='6'),
     ]),
-    html.Div([html.
-    H5("Current fatality rates for countries with more than 1000 confirmed cases)",
-       id="fatality-chart"),
-    html.
-    P("Note: There may be factors that account for increased death rates such  as coinfection, more inadequate healthcare, patient demographics (i.e., older patients might be more prevalent in countries such as Italy).",
-      id="note2"),
-    dbc.Row([dbc.Col(dcc.Graph(id='fatalityChart', figure=fatalityChart))])])
+    html.Div([
+        html.
+        H5("Current confirmed Case Fatality Rates (CFR) for countries with more than 1000 confirmed cases)",
+           id="fatality-chart"),
+        html.
+        P("Note: During an outbreak of a pandemic the CFR is a poor measure of the mortality risk of the disease as there may be factors that account for increased death rates such as coinfection, access to healthcare, patient demographics (i.e., older patients might be more prevalent in countries such as Italy).",
+          id="note2"),
+        dbc.Row([dbc.Col(dcc.Graph(id='fatalityChart',
+                                   figure=fatalityChart))]),
+        html.
+        H5("Case fatality rate of COVID-19 vs proportion of population over 65 years old)",
+           id="fatality65-chart"),
+        html.
+        P("Note: The size of the bubble corresponds to the total confirmed deaths up to that date.",
+          id="note3"),
+        dbc.Row(
+            [dbc.Col(dcc.Graph(id='fatalityRate_65', figure=fatalityRate_65))])
+    ])
 ])
 
-# app.layout = html.Div(children=[
-#     html.H1(children='Coronavirus (COVID-19) Dashboard'),
-#     html.Div(children='''
-#         Tracking world-wide cases
-#     '''),
-#     html.Div([dcc.Graph(id='total-cases', figure=world_map)],
-#              className="eight columns"),
-#     html.Div(html.Row(children='Total Cases')),
-# ])
-##
 
 #######################
 # CALL BACK FUNCTIONS #
@@ -453,6 +507,6 @@ def update_plot_total(country, metrics):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=False)
+    app.run_server(debug=True)
 
 server = app.server
