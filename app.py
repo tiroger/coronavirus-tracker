@@ -74,6 +74,9 @@ top_10 = list(grouped.Country[0:10])
 
 grouped['fatalityRate'] = round(grouped.Deaths / grouped.Confirmed * 100, 2)
 
+# grouped['newConfirmed'] = grouped['Confirmed'].diff().fillna(0)
+# grouped['newDeaths'] = grouped['Deaths'].diff().fillna(0)
+
 grouped_country = world_data.groupby(['Country', 'Date']).agg({
     'Confirmed': 'max',
     'Deaths': 'max'
@@ -120,11 +123,11 @@ missing_populations = len(
 # print('-------')
 # world_data.head()
 
-# Calculating cases per 100,000 population
-world_data['casesPerCapita'] = world_data['Confirmed'] / world_data[
-    'population'] * 100000
-world_data['deathsPerCapita'] = world_data['Deaths'] / world_data[
-    'population'] * 100000
+# # Calculating cases per 100,000 population
+# world_data['casesPerCapita'] = world_data['Confirmed'] / world_data[
+#     'population'] * 100000
+# world_data['deathsPerCapita'] = world_data['Deaths'] / world_data[
+#     'population'] * 100000
 
 # # Last time data was updated
 last_update = world_data.Date.max().strftime("%d-%b-%Y")
@@ -218,9 +221,9 @@ card_content2 = [
 # LINE CHART #
 ##############
 
-def lineChart(country, metrics, yaxisTitle=""):
+def lineChart(country, metrics, yaxis_type, yaxisTitle=""):
 
-    fig = px.line(df_select,
+    fig = px.line(world_data,
                   x=world_data[world_data['Country'] == country]['Date'],
                   y=world_data[world_data['Country'] == country][metrics])
     fig.update_xaxes(title='')
@@ -228,7 +231,8 @@ def lineChart(country, metrics, yaxisTitle=""):
     # fig.update_traces(textposition='top center')
 
     # fig.update_traces(texttemplate='%{text:.2s}')
-    fig.update_layout(hovermode= 'x',
+    fig.update_layout(
+        hovermode='x',
         title="",
         template="plotly_dark",
         legend_orientation="h",
@@ -238,9 +242,10 @@ def lineChart(country, metrics, yaxisTitle=""):
             "l": 0,
             "b": 0
         },
+        #transition={'duration': 500},
     )
-    fig.update_xaxes(showspikes=True, spikethickness=1)
-    fig.update_yaxes(showspikes=True, spikethickness=1)
+    fig.update_xaxes(showspikes=False, spikethickness=1)
+    fig.update_yaxes(showspikes=False, spikethickness=1, type=yaxis_type)
 
     fig.update_traces(hovertemplate='Total Cases: ' + grouped_country[
         grouped_country['Country'] == country][metrics].astype(str))
@@ -250,29 +255,29 @@ def lineChart(country, metrics, yaxisTitle=""):
 # line_chart = lineChart()
 
 
-def perCapita():
+# def perCapita():
 
-    fig = px.line(df_select, x="Date", y="confirmedPerCapita", color='Country')
-    fig.update_xaxes(title='')
-    fig.update_yaxes(title='Cummulative Cases per 100,000')
-    # fig.update_traces(textposition='top center')
+#     fig = px.line(df_select, x="Date", y="confirmedPerCapita", color='Country')
+#     fig.update_xaxes(title='')
+#     fig.update_yaxes(title='Cummulative Cases per 100,000')
+#     # fig.update_traces(textposition='top center')
 
-    # fig.update_traces(texttemplate='%{text:.2s}')
-    fig.update_layout(template="plotly_dark")
+#     # fig.update_traces(texttemplate='%{text:.2s}')
+#     fig.update_layout(template="plotly_dark")
 
-    fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
-                      '<br>' + 'Date: ' + df_select['Date'].astype(str) +
-                      '<br>' + 'Confirmed Cases: ' +
-                      df_select['Confirmed'].astype(str))
+#     fig.update_traces(hovertemplate='<b>' + df_select['Country'] + '</b>' +
+#                       '<br>' + 'Date: ' + df_select['Date'].astype(str) +
+#                       '<br>' + 'Confirmed Cases: ' +
+#                       df_select['Confirmed'].astype(str))
 
-    return fig
+#     return fig
 
 
 #############
 # BAR CHART #
 #############
 
-def newCases(country, metrics, yaxisTitle=""):
+def newCases(country, metrics, yaxis_type, yaxisTitle=""):
 
     figure = px.bar(
         grouped_country,
@@ -288,9 +293,11 @@ def newCases(country, metrics, yaxisTitle=""):
                              "t": 50,
                              "l": 0,
                              "b": 50
-                         })
+                         },
+                         #transition={'duration': 500}
+                         )
     figure.update_xaxes(title='')
-    figure.update_yaxes(title='New Cases per Day')
+    figure.update_yaxes(title='New Cases per Day', type=yaxis_type)
 
     figure.update_traces(hovertemplate='Date: ' + grouped_country[
         grouped_country['Country'] == country]['Date'][1:].astype(str) +
@@ -322,20 +329,22 @@ def fatalityRate():
                       marker_line_color='crimson',
                       marker_line_width=1.5,
                       opacity=0.6)
-    fig.update_layout(xaxis={
-        'categoryorder': 'total descending',
-        'title': ''
-    },
-                      template="plotly_dark",
-                      yaxis={'title': 'Current Fatality Rates (%) <br> >1000 cases'},
-                      uniformtext_minsize=9,
-                      uniformtext_mode='hide',
-                      margin={
-                          "r": 0,
-                          "t": 0,
-                          "l": 0,
-                          "b": 0
-                      })
+    fig.update_layout(
+        xaxis={
+            'categoryorder': 'total descending',
+            'title': ''
+        },
+        template="plotly_dark",
+        yaxis={'title': 'Current Fatality Rates (%) <br> Countries with >1000 cases'},
+        uniformtext_minsize=9,
+        uniformtext_mode='hide',
+        margin={
+            "r": 0,
+            "t": 0,
+            "l": 0,
+            "b": 0
+        },
+        transition={'duration': 500})
     fig.update_traces(
         hovertemplate='Country: ' +
         grouped[grouped.Confirmed > 1000]["Country"].astype(str) + '<br>' +
@@ -402,6 +411,7 @@ fatalityRate_65 = fatalityRate_65()
 
 #########################################
 print(grouped)
+
 ####################
 # DASHBOARD LAYOUT #
 ####################
@@ -450,6 +460,14 @@ app.layout = dbc.Container([
                            value='Confirmed',
                            labelStyle={'display': 'inline-block'})),
         dbc.Col(
+            dcc.RadioItems(id='yaxis_type',
+                           options=[{
+                               'label': i,
+                               'value': i
+                           } for i in ['linear', 'log']],
+                           value='linear',
+                           labelStyle={'display': 'inline-block'})),
+        dbc.Col(
             dcc.Dropdown(id='country',
                          options=[{
                              'label': c,
@@ -473,16 +491,24 @@ app.layout = dbc.Container([
         html.
         P("Note: During an outbreak of a pandemic the CFR is a poor measure of the mortality risk of the disease as there may be factors that account for increased death rates such as coinfection, access to healthcare, patient demographics (i.e., older patients might be more prevalent in countries such as Italy).",
           id="note2"),
-        dbc.Row([dbc.Col(dcc.Graph(id='fatalityChart',
-                                   figure=fatalityChart))]),
+        dbc.Row([
+            dbc.Col(
+                dcc.Graph(id='fatalityChart',
+                          figure=fatalityChart,
+                          config={'displayModeBar': False}))
+        ]),
         html.
-        H5("Case fatality rate of COVID-19 vs proportion of population over 65 years old)",
+        H5("Case fatality rate (CFR) of COVID-19 vs proportion of population over 65 years old)",
            id="fatality65-chart"),
         html.
         P("Note: The size of the bubble corresponds to the total confirmed deaths up to that date.",
           id="note3"),
-        dbc.Row(
-            [dbc.Col(dcc.Graph(id='fatalityRate_65', figure=fatalityRate_65))])
+        dbc.Row([
+            dbc.Col(
+                dcc.Graph(id='fatalityRate_65',
+                          figure=fatalityRate_65,
+                          config={'displayModeBar': False}))
+        ])
     ])
 ])
 
@@ -492,21 +518,25 @@ app.layout = dbc.Container([
 #######################
 
 
-@app.callback(Output('barChart', 'figure'),
-              [Input('country', 'value'),
-               Input('metrics', 'value')])
-def update_plot(country, metrics):
-    return newCases(country, metrics, yaxisTitle="Daily Increase")
+@app.callback(Output('barChart', 'figure'), [
+    Input('country', 'value'),
+    Input('metrics', 'value'),
+    Input('yaxis_type', 'value'),
+])
+def update_plot(country, metrics, yaxis_type):
+    return newCases(country, metrics, yaxis_type, yaxisTitle="Daily Increase")
 
 
-@app.callback(Output('lineChart', 'figure'),
-              [Input('country', 'value'),
-               Input('metrics', 'value')])
-def update_plot_total(country, metrics):
-    return lineChart(country, metrics, yaxisTitle="Daily Increase")
+@app.callback(Output('lineChart', 'figure'), [
+    Input('country', 'value'),
+    Input('metrics', 'value'),
+    Input('yaxis_type', 'value'),
+])
+def update_plot_total(country, metrics, yaxis_type):
+    return lineChart(country, metrics, yaxis_type, yaxisTitle="Daily Increase")
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=False)
 
 server = app.server
