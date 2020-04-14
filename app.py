@@ -381,7 +381,7 @@ def fatalityRate_65():
     fig.update_traces(marker_color='purple',
                       marker_line_color='red',
                       marker_line_width=1.5,
-                      opacity=0.9,
+                      opacity=0.8,
                       textposition='top right')
     fig.update_layout(
         template="plotly_dark",
