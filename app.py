@@ -4,8 +4,7 @@
 
 import pandas as pd
 import numpy as np
-from datetime import datetime
-import datetime
+from datetime import datetime, date, time, timezone
 import pycountry
 
 import plotly.express as px
@@ -59,7 +58,7 @@ def world_data():
 
 # World data
 world_data = world_data()
-world_data.head()
+#world_data.head()
 
 ########################
 
@@ -130,9 +129,15 @@ missing_populations = len(
 #     'population'] * 100000
 
 # # Last time data was updated
-last_update = world_data.Date.max().strftime("%d-%b-%Y")
 
-print('Data Loaded')
+def update_time():
+    #last_update = world_data.Date.max().strftime("%d-%b-%Y")
+    last_update = datetime.now().strftime("%B %dth %Y %H:%M:%S")
+    return last_update
+
+
+
+print('Data Succefully Loaded')
 
 ##############
 # CHOROPLETH #
@@ -240,7 +245,7 @@ def lineChart(country, metrics, yaxis_type, yaxisTitle=""):
             "r": 0,
             "t": 50,
             "l": 0,
-            "b": 0
+            "b": 50
         },
         #transition={'duration': 500},
     )
@@ -410,108 +415,115 @@ fatalityRate_65 = fatalityRate_65()
 
 
 #########################################
-print(grouped)
+# print(grouped)
 
 ####################
 # DASHBOARD LAYOUT #
 ####################
 
-app.layout = dbc.Container([
-    dbc.Jumbotron([
-        html.H1("COVID-19 CORONAVIRUS PANDEMIC", className="display-3"),
-        html.P(
-            "Last updated: " + str(last_update),
-            className="lead",
-        )
-    ]),
-    html.H5("Global confirmed COVID-19 cases and deaths",
-            id="choropleth-title"),
-    html.
-    P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
-      id="note"),
-    dbc.Row([
-        dbc.Col(html.Div(
-            dcc.Graph(id='choropleth',
-                      figure=world_map,
-                      config={'displayModeBar': False})),
-                width='16'),
-        dbc.Col(children=[
-            dbc.Row(
-                dbc.Col(dbc.Card(card_content1, color="dark", inverse=True),
-                        width="12")),
-            dbc.Row(
-                dbc.Col(dbc.Card(card_content2, color="dark", inverse=True),
-                        width="12"))
+def serve_layout():
+
+    last_update = update_time()
+
+    layout = dbc.Container([
+        dbc.Jumbotron([
+            html.H1("COVID-19 CORONAVIRUS PANDEMIC", className="display-3"),
+            html.P(
+                "Current as of: " + str(last_update),
+                className="lead",
+            )
         ]),
-    ]),
-    html.
-    H5("Confirmed COVID-19 cases and deaths - (Select country and metric below)",
-       id="chart-title"),
-    html.
-    P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
-      id="note1"),
-    dbc.Row([
-        dbc.Col(
-            dcc.RadioItems(id='metrics',
-                           options=[{
-                               'label': m,
-                               'value': m
-                           } for m in ['Confirmed', 'Deaths']],
-                           value='Confirmed',
-                           labelStyle={'display': 'inline-block'})),
-        dbc.Col(
-            dcc.RadioItems(id='yaxis_type',
-                           options=[{
-                               'label': i,
-                               'value': i
-                           } for i in ['linear', 'log']],
-                           value='linear',
-                           labelStyle={'display': 'inline-block'})),
-        dbc.Col(
-            dcc.Dropdown(id='country',
-                         options=[{
-                             'label': c,
-                             'value': c
-                         } for c in world_data.Country.unique()],
-                         value='US',
-                         multi=False))
-    ]),
-    dbc.Row([
-        dbc.Col(html.Div(
-            dcc.Graph(id='lineChart', config={'displayModeBar': False})),
-                width='6'),
-        dbc.Col(html.Div(
-            dcc.Graph(id='barChart', config={'displayModeBar': False})),
-                width='6'),
-    ]),
-    html.Div([
+        html.H5("Global confirmed COVID-19 cases and deaths",
+                id="choropleth-title"),
         html.
-        H5("Current confirmed Case Fatality Rates (CFR) for countries with more than 1000 confirmed cases)",
-           id="fatality-chart"),
-        html.
-        P("Note: During an outbreak of a pandemic the CFR is a poor measure of the mortality risk of the disease as there may be factors that account for increased death rates such as coinfection, access to healthcare, patient demographics (i.e., older patients might be more prevalent in countries such as Italy).",
-          id="note2"),
+        P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
+        id="note"),
         dbc.Row([
-            dbc.Col(
-                dcc.Graph(id='fatalityChart',
-                          figure=fatalityChart,
-                          config={'displayModeBar': False}))
+            dbc.Col(html.Div(
+                dcc.Graph(id='choropleth',
+                        figure=world_map,
+                        config={'displayModeBar': False})),
+                    width='16'),
+            dbc.Col(children=[
+                dbc.Row(
+                    dbc.Col(dbc.Card(card_content1, color="dark", inverse=True),
+                            width="12")),
+                dbc.Row(
+                    dbc.Col(dbc.Card(card_content2, color="dark", inverse=True),
+                            width="12"))
+            ]),
         ]),
         html.
-        H5("Case fatality rate (CFR) of COVID-19 vs proportion of population over 65 years old)",
-           id="fatality65-chart"),
+        H5("Confirmed COVID-19 cases and deaths - (Select country and metric below)",
+        id="chart-title"),
         html.
-        P("Note: The size of the bubble corresponds to the total confirmed deaths up to that date.",
-          id="note3"),
+        P("Note: Confirmed counts are lower than the total counts due to limited testing and challenges in the attribution of the cause of death.",
+        id="note1"),
         dbc.Row([
             dbc.Col(
-                dcc.Graph(id='fatalityRate_65',
-                          figure=fatalityRate_65,
-                          config={'displayModeBar': False}))
+                dcc.RadioItems(id='metrics',
+                            options=[{
+                                'label': m,
+                                'value': m
+                            } for m in ['Confirmed', 'Deaths']],
+                            value='Confirmed',
+                            labelStyle={'display': 'inline-block'})),
+            dbc.Col(
+                dcc.RadioItems(id='yaxis_type',
+                            options=[{
+                                'label': i,
+                                'value': i
+                            } for i in ['linear', 'log']],
+                            value='linear',
+                            labelStyle={'display': 'inline-block'})),
+            dbc.Col(
+                dcc.Dropdown(id='country',
+                            options=[{
+                                'label': c,
+                                'value': c
+                            } for c in world_data.Country.unique()],
+                            value='US',
+                            multi=False))
+        ]),
+        dbc.Row([
+            dbc.Col(html.Div(
+                dcc.Graph(id='lineChart', config={'displayModeBar': False})),
+                    width='6'),
+            dbc.Col(html.Div(
+                dcc.Graph(id='barChart', config={'displayModeBar': False})),
+                    width='6'),
+        ]),
+        html.Div([
+            html.
+            H5("Current confirmed Case Fatality Rates (CFR) for countries with more than 1000 confirmed cases)",
+            id="fatality-chart"),
+            html.
+            P("Note: During an outbreak of a pandemic the CFR is a poor measure of the mortality risk of the disease as there may be factors that account for increased death rates such as coinfection, access to healthcare, patient demographics (i.e., older patients might be more prevalent in countries such as Italy).",
+            id="note2"),
+            dbc.Row([
+                dbc.Col(
+                    dcc.Graph(id='fatalityChart',
+                            figure=fatalityChart,
+                            config={'displayModeBar': False}))
+            ]),
+            html.
+            H5("Case fatality rate (CFR) of COVID-19 vs proportion of population over 65 years old)",
+            id="fatality65-chart"),
+            html.
+            P("Note: The size of the bubble corresponds to the total confirmed deaths up to that date.",
+            id="note3"),
+            dbc.Row([
+                dbc.Col(
+                    dcc.Graph(id='fatalityRate_65',
+                            figure=fatalityRate_65,
+                            config={'displayModeBar': False}))
+            ])
         ])
     ])
-])
 
+    return layout
+
+app.layout = serve_layout
 
 #######################
 # CALL BACK FUNCTIONS #
@@ -536,7 +548,7 @@ def update_plot_total(country, metrics, yaxis_type):
     return lineChart(country, metrics, yaxis_type, yaxisTitle="Daily Increase")
 
 
+server = app.server
+
 if __name__ == '__main__':
     app.run_server(debug=False)
-
-server = app.server
